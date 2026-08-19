@@ -9,6 +9,10 @@ build/
 .env
 *.local
 
+# binarios compilados
+*.exe
+*.out
+
 # basura del sistema operativo y del editor
 .DS_Store
 Thumbs.db
