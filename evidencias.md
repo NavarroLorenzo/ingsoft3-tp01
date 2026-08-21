@@ -61,3 +61,35 @@ Se comparó la imagen `golang:1.26-alpine`, utilizada durante la etapa de compil
 La imagen de Go utilizada para el build tiene un tamaño aproximado de **71,6 MB**, mientras que la imagen final del backend ocupa aproximadamente **21,8 MB**.
 
 Esta diferencia demuestra el beneficio del Dockerfile multi-stage: las herramientas utilizadas para compilar el proyecto permanecen en la etapa de build y la imagen final contiene solamente lo necesario para ejecutar la aplicación.
+
+# TP3 — Planificación y trazabilidad
+
+## Duración del sprint
+
+Elegí que el sprint tenga una duración de **2 semanas**. Me pareció un tiempo razonable porque permite organizar las tareas sin hacer un sprint demasiado largo, pero tampoco tan corto como para tener que estar reorganizando constantemente el trabajo. Además, es una duración bastante común y se adapta bien al tiempo que tenemos entre las entregas de la materia.
+
+## Límite de trabajo en progreso
+
+Configuré un límite de trabajo en progreso de **2 tareas** en la columna `In Progress`.
+
+Elegí este número porque estoy trabajando solo en el proyecto y usé la regla de cantidad de personas + 1. Esto me permite trabajar principalmente en una tarea y, si esa queda bloqueada o esperando algo, poder avanzar con una segunda sin empezar demasiadas cosas al mismo tiempo.
+
+## Historia mal escrita
+
+La historia *"Como desarrollador quiero crear la tabla usuarios para guardar los datos"* está mal escrita porque en realidad describe una tarea técnica y no algo que entregue valor directamente a un usuario.
+
+La reescribiría como: *"Como usuario quiero poder registrarme para guardar mis datos y acceder a mi cuenta."* De esta forma se describe primero lo que necesita el usuario y después la creación de la tabla podría ser una tarea técnica necesaria para cumplir esa historia.
+
+## Problemas encontrados
+
+Uno de los problemas que tuve fue que creé el GitHub Project mediante comandos y los issues no se agregaban automáticamente al proyecto. Para solucionarlo entré a los workflows del Project, activé `Auto-add to project` y seleccioné el repositorio del trabajo.
+
+También tuve que cambiar la visibilidad del Project porque inicialmente estaba privado. Lo hice desde la terminal con `gh project edit` y después comprobé que quedara público.
+
+Por último, comprobé la trazabilidad creando el PR que implementaba la tarea de crear el workflow de CI. En la descripción puse `Closes #8` y, después de hacer el merge a `main`, GitHub cerró automáticamente la tarea y la movió a `Done`. La historia quedó en `1/2`, ya que la segunda tarea todavía sigue pendiente.
+
+## Uso de inteligencia artificial
+
+Utilicé inteligencia artificial como ayuda para interpretar algunos puntos de la guía, preparar los comandos de GitHub CLI y revisar que la configuración que iba haciendo cumpliera con lo pedido.
+
+No tomé los resultados directamente como correctos, sino que fui ejecutando cada paso y comprobándolo en GitHub. También comparé lo realizado con los checkpoints y requisitos de la guía del profesor para verificar que la jerarquía, el sprint, el tablero, el límite de trabajo en progreso y la trazabilidad funcionaran correctamente.
