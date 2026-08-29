@@ -4,7 +4,6 @@ import (
 	"log"
 	"os"
 
-	"paquete/que/no/existe"
 	"gestor-gastos/backend/internal/database"
 	"gestor-gastos/backend/internal/handlers"
 )
