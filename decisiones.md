@@ -69,3 +69,49 @@ Si hubiera realizado esa parte completamente de forma manual, habría tenido que
 Para este TP no me limité a utilizar directamente la configuración generada. Fui adaptando los Dockerfiles, los archivos `.dockerignore`, `nginx.conf`, `docker-compose.yml`, `.env.example` y la configuración de red para que siguieran específicamente los requisitos de la guía de la materia.
 
 También utilicé ChatGPT y Codex como apoyo para revisar esos archivos y detectar diferencias con la guía. No tomé las respuestas de IA como una verificación suficiente: comprobé la configuración ejecutando `docker compose config`, construí las imágenes con `docker compose up -d --build`, revisé el estado de los servicios con `docker compose ps`, probé el endpoint de health del backend y utilicé la aplicación desde el navegador para verificar que frontend, backend y PostgreSQL funcionaran juntos.
+
+# Decisiones — TP4
+
+## Pipeline de CI
+
+Para este TP armé el pipeline usando GitHub Actions porque es la herramienta que veníamos usando con el repositorio y era la opción más directa para integrar todo con los Pull Requests.
+
+Separé el pipeline en dos jobs: uno para el backend y otro para el frontend. Los dejé en paralelo porque ninguno depende del otro y así se pueden construir las dos imágenes al mismo tiempo.
+
+El workflow corre cuando se abre o actualiza un Pull Request hacia `main` y también cuando hay un push a `main`.
+
+## Build con Docker
+
+Decidí que el pipeline construya directamente las imágenes usando los Dockerfiles que ya había hecho en el TP2.
+
+No agregué comandos separados de Go o React dentro del workflow porque así el proceso de build queda definido en un solo lugar. De esta forma, lo que se construye en el pipeline es lo mismo que construiría usando Docker localmente.
+
+## Cache
+
+Agregué cache para las capas de Docker tanto en el backend como en el frontend.
+
+Cada uno tiene un `scope` distinto para que los caches no se mezclen entre sí. En una segunda ejecución del pipeline pude comprobar en los logs que varias capas aparecían como `CACHED`.
+
+El cache sirve para reutilizar capas que no cambiaron y evitar hacer siempre todo el build desde cero. De todas formas, el pipeline no depende del cache: si se borra, simplemente vuelve a construir las capas y debería seguir funcionando igual.
+
+## Protección de main
+
+Configuré `build-backend` y `build-frontend` como checks obligatorios para poder hacer merge a `main`.
+
+También dejé activada la opción que obliga a que la rama esté actualizada con `main` antes de mergear.
+
+Para comprobar que funcionaba, rompí a propósito el build del backend. El pipeline quedó en rojo y GitHub bloqueó el merge. Después corregí el error, hice otro push y el pipeline volvió a correr y quedó en verde.
+
+También probé el caso de una rama desactualizada y GitHub obligó a hacer `Update branch` antes de permitir el merge.
+
+## Problemas encontrados
+
+No tuve problemas importantes con la configuración. Lo principal fue ir verificando que los nombres de los jobs coincidieran exactamente con los checks configurados como obligatorios.
+
+También fue necesario hacer dos ejecuciones del pipeline para comprobar correctamente el funcionamiento del cache.
+
+## Uso de IA
+
+Usé ChatGPT como ayuda para seguir la guía del práctico, entender qué hacía cada parte del workflow y revisar los pasos antes de realizarlos.
+
+La configuración se fue comprobando directamente en mi repositorio, verificando que los builds corrieran, que aparecieran las capas `CACHED`, que el gate bloqueara el merge cuando había un error y que después se habilitara nuevamente al corregirlo.
