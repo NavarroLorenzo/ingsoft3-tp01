@@ -14,6 +14,12 @@ button { cursor: pointer; }
 .site-header { display: flex; justify-content: space-between; gap: 20px; align-items: center; padding: 46px 0 28px; }
 .site-header h1, h2, p { margin-top: 0; }
 .site-header h1 { margin-bottom: 0; font-size: clamp(1.75rem, 4vw, 2.45rem); letter-spacing: -0.04em; }
+.header-brand { min-width: 0; }
+.brand { display: inline-flex; align-items: center; gap: 9px; color: #123c68; font-size: 1.35rem; font-weight: 850; letter-spacing: -.045em; line-height: 1; }
+.brand-symbol { position: relative; display: grid; width: 34px; height: 34px; place-items: center; overflow: hidden; border-radius: 10px; color: #fff; background: #1662ad; box-shadow: 0 4px 12px rgba(22, 98, 173, .22); }
+.brand-logo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #fff; }
+.brand-fallback { font-size: 1.18rem; font-weight: 900; }
+.brand-name { white-space: nowrap; }
 .eyebrow { margin-bottom: 7px; color: #557092; font-size: .78rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
 .section { margin-top: 22px; padding: 26px; border: 1px solid #dce6f2; border-radius: 16px; background: #fff; box-shadow: 0 8px 30px rgba(48, 77, 113, .07); }
 .section-heading { display: flex; justify-content: space-between; gap: 16px; align-items: center; margin-bottom: 19px; }
@@ -63,6 +69,7 @@ tbody tr:last-child td { border-bottom: none; }
 .user-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: end; gap: 13px; color: #4b607d; font-size: .92rem; font-weight: 700; }
 .auth-page { display: grid; min-height: 100vh; place-items: center; padding: 24px; }
 .auth-card { width: min(100%, 430px); padding: 34px; border: 1px solid #dce6f2; border-radius: 16px; background: #fff; box-shadow: 0 8px 30px rgba(48, 77, 113, .1); }
+.auth-brand { margin-bottom: 20px; }
 .auth-card h1 { margin-bottom: 24px; font-size: 1.8rem; letter-spacing: -.04em; }
 .auth-form { display: grid; gap: 16px; }
 .auth-form .primary-button { width: 100%; margin-top: 3px; }

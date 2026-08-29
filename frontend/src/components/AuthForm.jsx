@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { useState } from "react";
 import { validarEmail, validarRegistro } from "../utils/formato";
+import Brand from "./Brand";
 
 export function LoginPage({ onLogin }) {
   const [datos, setDatos] = useState({ email: "", password: "" });
@@ -44,5 +45,5 @@ export function RegisterPage({ onRegister }) {
 }
 
 function AuthCard({ title, onSubmit, error, loading, button, children }) {
-  return <main className="auth-page"><section className="auth-card"><p className="eyebrow">Gestor de Gastos</p><h1>{title}</h1><form className="auth-form" onSubmit={onSubmit}>{children}{error && <p className="form-error" role="alert">{error}</p>}<button className="primary-button" disabled={loading} type="submit">{loading ? "Procesando..." : button}</button></form></section></main>;
+  return <main className="auth-page"><section className="auth-card"><Brand className="auth-brand" /><p className="eyebrow">Control simple de finanzas</p><h1>{title}</h1><form className="auth-form" onSubmit={onSubmit}>{children}{error && <p className="form-error" role="alert">{error}</p>}<button className="primary-button" disabled={loading} type="submit">{loading ? "Procesando..." : button}</button></form></section></main>;
 }
