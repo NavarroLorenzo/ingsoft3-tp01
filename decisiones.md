@@ -70,6 +70,52 @@ Para este TP no me limité a utilizar directamente la configuración generada. F
 
 También utilicé ChatGPT y Codex como apoyo para revisar esos archivos y detectar diferencias con la guía. No tomé las respuestas de IA como una verificación suficiente: comprobé la configuración ejecutando `docker compose config`, construí las imágenes con `docker compose up -d --build`, revisé el estado de los servicios con `docker compose ps`, probé el endpoint de health del backend y utilicé la aplicación desde el navegador para verificar que frontend, backend y PostgreSQL funcionaran juntos.
 
+# Decisiones — TP3
+
+## Duración del sprint
+
+Elegí una duración de 2 semanas para el sprint porque me parecía un tiempo razonable para organizar las tareas del práctico y se alinea bastante bien con el ritmo de entregas de la materia.
+
+La idea fue tener un período suficientemente corto como para poder ver avances, pero sin hacerlo tan chico como para estar cambiando de sprint todo el tiempo.
+
+## Límite de trabajo en progreso
+
+Configuré un límite de trabajo en progreso de 2 tareas en la columna `In Progress`.
+
+Elegí 2 porque estoy trabajando solo y la guía propone como punto de partida la cantidad de personas más uno. También me pareció un límite lógico para no empezar muchas cosas al mismo tiempo y tratar de terminar una tarea antes de seguir agregando otras.
+
+## Historia mal escrita
+
+La historia:
+
+`Como desarrollador quiero crear la tabla usuarios para guardar los datos`
+
+no me parece una buena historia de usuario porque en realidad está describiendo una tarea técnica y no una necesidad observable para el usuario.
+
+Una forma de escribirla mejor podría ser:
+
+`Como usuario quiero poder registrarme en la aplicación para poder guardar y acceder a mis datos.`
+
+Después, crear la tabla de usuarios podría quedar como una tarea técnica dentro de esa historia.
+
+## Problemas encontrados
+
+Uno de los problemas que tuve fue entender bien cómo organizar la jerarquía entre épica, historia y tareas dentro de GitHub Projects.
+
+También tuve que corregir la configuración del sprint porque al principio no había quedado creado como una iteración con fecha y duración, ni estaban asignadas correctamente la historia y sus dos tareas.
+
+Otro problema fue que se habían agregado varios Pull Requests al Project y terminaban ensuciando el tablero. Los saqué del Project y dejé solamente los items necesarios para el TP, manteniendo el PR correspondiente vinculado a la tarea que cerró.
+
+También revisé que el límite de trabajo en progreso quedara configurado en 2 y que al cerrar una tarea, GitHub Projects la moviera automáticamente a `Done`.
+
+## Uso de IA
+
+Usé ChatGPT como ayuda para seguir la guía del práctico,  y para revisar que la configuración de GitHub Projects cumpliera con lo pedido.
+
+También lo usé para revisar la configuración del sprint, el límite de trabajo en progreso y la trazabilidad entre la tarea y el Pull Request.
+
+Todo lo fui verificando directamente en GitHub, comprobando que la jerarquía fuera navegable, que el sprint estuviera asignado a la historia y sus tareas, que el PR cerrara automáticamente la tarea y que el board se actualizara correctamente.
+
 # Decisiones — TP4
 
 ## Pipeline de CI
