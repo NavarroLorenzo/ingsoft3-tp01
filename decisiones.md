@@ -20,7 +20,7 @@ También se generó intencionalmente un conflicto entre dos ramas que modificaba
 
 Utilicé ChatGPT como herramienta de apoyo durante la realización del trabajo práctico. Lo utilicé principalmente para organizar y redactar la documentación de `evidencias.md` y `decisiones.md`, ya que segui los pasos de la Guia 01.
 
-## TP2 — Contenedores
+# Decisiones — TP2
 
 ### 1. Aplicación elegida
 
