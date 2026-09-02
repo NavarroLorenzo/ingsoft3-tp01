@@ -161,3 +161,17 @@ También fue necesario hacer dos ejecuciones del pipeline para comprobar correct
 Usé ChatGPT como ayuda para seguir la guía del práctico, entender qué hacía cada parte del workflow y revisar los pasos antes de realizarlos.
 
 La configuración se fue comprobando directamente en mi repositorio, verificando que los builds corrieran, que aparecieran las capas `CACHED`, que el gate bloqueara el merge cuando había un error y que después se habilitara nuevamente al corregirlo.
+
+# Decisiones — Docker Registry
+
+## Registry elegido
+
+Elegí GitHub Container Registry (GHCR) para publicar las imágenes del backend y frontend. El proyecto ya se encuentra alojado en GitHub, por lo que GHCR permite mantener el código y las imágenes vinculados en la misma cuenta. Las imágenes se publican como `ghcr.io/navarrolorenzo/ingsoft3-tp01-backend:v0.1.0` y `ghcr.io/navarrolorenzo/ingsoft3-tp01-frontend:v0.1.0`.
+
+## Ejecución desde el registry
+
+Conservé `docker-compose.yml` para desarrollo local, donde Docker construye las imágenes desde los Dockerfiles. Agregué `docker-compose.registry.yml`, que mantiene servicios, variables, healthchecks, dependencias y volumen, pero reemplaza los builds del backend y frontend por imágenes de GHCR. Una vez que los packages sean públicos, el sistema se puede iniciar sin reconstruir ni disponer del código fuente.
+
+## Trazabilidad de las imágenes
+
+Agregué etiquetas OCI en ambos Dockerfiles con la URL del repositorio. Esto vincula los packages publicados con su código fuente en GitHub y deja identificada la procedencia de cada imagen.
