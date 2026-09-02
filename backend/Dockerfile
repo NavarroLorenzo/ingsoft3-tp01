@@ -18,6 +18,9 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o /app/publish/gestor-gastos-api ./cmd/ap
 FROM alpine:3.22 AS final
 WORKDIR /app
 
+LABEL org.opencontainers.image.source="https://github.com/NavarroLorenzo/ingsoft3-tp01"
+LABEL org.opencontainers.image.description="API del gestor de gastos personales"
+
 COPY --from=build /app/publish .
 
 EXPOSE 8080

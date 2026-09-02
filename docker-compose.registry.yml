@@ -15,9 +15,7 @@ services:
       start_period: 5s
 
   backend:
-    image: mi-backend:dev
-    build:
-      context: ./backend
+    image: ghcr.io/navarrolorenzo/ingsoft3-tp01-backend:v0.1.0
     environment:
       DB_HOST: db
       DB_PORT: "5432"
@@ -39,9 +37,7 @@ services:
       start_period: 5s
 
   frontend:
-    image: mi-frontend:dev
-    build:
-      context: ./frontend
+    image: ghcr.io/navarrolorenzo/ingsoft3-tp01-frontend:v0.1.0
     ports:
       - "3000:80"
     depends_on:

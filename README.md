@@ -55,6 +55,7 @@ ingsoft3-tp01/
 │   └── tp2/
 │
 ├── docker-compose.yml
+├── docker-compose.registry.yml
 ├── .env.example
 ├── decisiones.md
 ├── evidencias.md
@@ -90,6 +91,10 @@ Define los servicios principales de la aplicación:
 - PostgreSQL
 
 También se utiliza para configurar variables de entorno, healthchecks, dependencias entre servicios y volúmenes.
+
+### `docker-compose.registry.yml`
+
+Es la variante que descarga el backend y frontend desde GitHub Container Registry (GHCR). No incluye `build`, por lo que permite levantar la aplicación sin el código fuente una vez publicadas las imágenes.
 
 ### `img/`
 
@@ -207,6 +212,26 @@ Esto permite separar la etapa de construcción de la etapa final de ejecución.
 Docker Compose se encarga de levantar y conectar todos los servicios de la aplicación.
 
 PostgreSQL utiliza un volumen para mantener los datos aunque el contenedor sea eliminado y creado nuevamente.
+
+## Imágenes en Docker Registry
+
+El compose local construye las imágenes `mi-backend:dev` y `mi-frontend:dev`. Para publicarlas en GitHub Container Registry, creá un Personal Access Token classic de GitHub con el permiso `write:packages` y ejecutá:
+
+```bash
+docker login ghcr.io -u NavarroLorenzo
+docker tag mi-backend:dev ghcr.io/navarrolorenzo/ingsoft3-tp01-backend:v0.1.0
+docker tag mi-frontend:dev ghcr.io/navarrolorenzo/ingsoft3-tp01-frontend:v0.1.0
+docker push ghcr.io/navarrolorenzo/ingsoft3-tp01-backend:v0.1.0
+docker push ghcr.io/navarrolorenzo/ingsoft3-tp01-frontend:v0.1.0
+```
+
+En GitHub, cambiá la visibilidad de ambos packages a **Public**. Luego se puede levantar la aplicación descargando las imágenes, sin reconstruirlas:
+
+```bash
+docker compose -f docker-compose.registry.yml up -d
+```
+
+Esta variante también requiere un archivo `.env`, que se crea a partir de `.env.example`.
 
 ---
 
