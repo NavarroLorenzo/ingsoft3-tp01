@@ -46,6 +46,8 @@ También agregué un `healthcheck` a PostgreSQL y configuré el backend con `dep
 
 Las contraseñas y valores sensibles no están escritos directamente en `docker-compose.yml`. Se leen desde un archivo `.env`, que está ignorado por Git. En el repositorio solamente se incluye `.env.example`, con valores de ejemplo para indicar qué variables necesita configurar una persona que clone el proyecto.
 
+Además agregué un `docker-compose.registry.yml` para poder levantar el frontend y el backend utilizando imágenes ya publicadas en **GitHub Container Registry**, en vez de tener que construirlas localmente. En este archivo uso las imágenes versionadas con `v0.1.0` y mantengo la misma configuración de servicios, variables, healthchecks y volumen que en el Compose normal.
+
 ### 3. Problemas encontrados y soluciones
 
 Uno de los primeros problemas fue que Compose mostraba advertencias indicando que `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` y `JWT_SECRET` no estaban definidas. Esto ocurría porque todavía no había creado el archivo `.env`. Lo solucioné copiando `.env.example` a `.env` y completando los valores necesarios.
@@ -66,7 +68,7 @@ Utilicé herramientas de inteligencia artificial durante el desarrollo de esta a
 
 Si hubiera realizado esa parte completamente de forma manual, habría tenido que crear la estructura del backend en Go, configurar la conexión con PostgreSQL, implementar los endpoints y la autenticación, desarrollar las pantallas y llamadas a la API en React y preparar los tests de ambos proyectos.
 
-Para este TP no me limité a utilizar directamente la configuración generada. Fui adaptando los Dockerfiles, los archivos `.dockerignore`, `nginx.conf`, `docker-compose.yml`, `.env.example` y la configuración de red para que siguieran específicamente los requisitos de la guía de la materia.
+Para este TP no me limité a utilizar directamente la configuración generada. Fui adaptando los Dockerfiles, los archivos `.dockerignore`, `nginx.conf`, `docker-compose.yml`, `docker-compose.registry.yml`, `.env.example` y la configuración de red para que siguieran específicamente los requisitos de la guía de la materia.
 
 También utilicé ChatGPT y Codex como apoyo para revisar esos archivos y detectar diferencias con la guía. No tomé las respuestas de IA como una verificación suficiente: comprobé la configuración ejecutando `docker compose config`, construí las imágenes con `docker compose up -d --build`, revisé el estado de los servicios con `docker compose ps`, probé el endpoint de health del backend y utilicé la aplicación desde el navegador para verificar que frontend, backend y PostgreSQL funcionaran juntos.
 
