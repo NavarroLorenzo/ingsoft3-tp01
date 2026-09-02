@@ -18,9 +18,6 @@ RUN npm run build
 # ---- Etapa 2: runtime (servidor web liviano, sin Node.js) ----
 FROM nginx:1.29-alpine
 
-LABEL org.opencontainers.image.source="https://github.com/NavarroLorenzo/ingsoft3-tp01"
-LABEL org.opencontainers.image.description="Frontend del gestor de gastos personales"
-
 # Configura Nginx para servir la aplicación y sus rutas.
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
