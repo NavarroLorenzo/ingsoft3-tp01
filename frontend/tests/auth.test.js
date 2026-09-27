@@ -11,7 +11,9 @@ describe("sesión de autenticación", () => {
   it("agrega Authorization y limpia la sesión", () => {
     guardarSesion({ token: "jwt-demo", user: { id: 1, nombre: "Ana" } });
     expect(getAuthHeaders()).toEqual({ Authorization: "Bearer jwt-demo" });
+    expect(localStorage.setItem).toHaveBeenCalledTimes(2);
     limpiarSesion();
     expect(getAuthHeaders()).toEqual({});
+    expect(localStorage.removeItem).toHaveBeenCalledTimes(2);
   });
 });

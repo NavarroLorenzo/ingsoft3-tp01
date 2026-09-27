@@ -31,6 +31,39 @@ jobs:
           cache-from: type=gha,scope=backend
           cache-to: type=gha,mode=max,scope=backend
 
+      - name: Construir etapa de tests del backend
+        uses: docker/build-push-action@v7
+        with:
+          context: ./backend
+          target: test
+          load: true
+          push: false
+          tags: backend-test:ci
+          cache-from: type=gha,scope=backend-test
+          cache-to: type=gha,mode=max,scope=backend-test
+
+      - name: Ejecutar tests y quality gate del backend
+        run: |
+          mkdir -p backend/coverage
+          docker run --rm \
+            -v "${{ github.workspace }}/backend/coverage:/reports" \
+            backend-test:ci
+
+      - name: Publicar resumen de cobertura del backend
+        if: ${{ !cancelled() }}
+        run: |
+          if [ -f backend/coverage/summary.md ]; then
+            cat backend/coverage/summary.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Publicar reporte de cobertura del backend
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-backend
+          path: backend/coverage
+          if-no-files-found: warn
+
   build-frontend:
     runs-on: ubuntu-latest
 
@@ -54,3 +87,36 @@ jobs:
           tags: frontend:ci
           cache-from: type=gha,scope=frontend
           cache-to: type=gha,mode=max,scope=frontend
+
+      - name: Construir etapa de tests del frontend
+        uses: docker/build-push-action@v7
+        with:
+          context: ./frontend
+          target: test
+          load: true
+          push: false
+          tags: frontend-test:ci
+          cache-from: type=gha,scope=frontend-test
+          cache-to: type=gha,mode=max,scope=frontend-test
+
+      - name: Ejecutar tests y quality gate del frontend
+        run: |
+          mkdir -p frontend/coverage
+          docker run --rm \
+            -v "${{ github.workspace }}/frontend/coverage:/app/coverage" \
+            frontend-test:ci
+
+      - name: Publicar resumen de cobertura del frontend
+        if: ${{ !cancelled() }}
+        run: |
+          if [ -f frontend/coverage/report/coverage-summary.json ]; then
+            node frontend/scripts/coverage-summary.cjs frontend/coverage/report/coverage-summary.json >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Publicar reporte de cobertura del frontend
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-frontend
+          path: frontend/coverage
+          if-no-files-found: warn

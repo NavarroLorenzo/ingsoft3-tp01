@@ -3,3 +3,6 @@ dist/
 .git/
 .env
 *.log
+coverage/
+.npm-cache/
+.cache/

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { validarCategoria } from "../utils/formato";
 
 export default function Categorias({ categorias, onCrear, onActualizar, onEliminar, cargando }) {
   const [nombre, setNombre] = useState("");
@@ -8,8 +9,9 @@ export default function Categorias({ categorias, onCrear, onActualizar, onElimin
   async function submit(event) {
     event.preventDefault();
     const value = nombre.trim();
-    if (value.length < 2 || value.length > 50) {
-      setError("El nombre debe tener entre 2 y 50 caracteres.");
+    const validationError = validarCategoria(value);
+    if (validationError) {
+      setError(validationError);
       return;
     }
     setError("");

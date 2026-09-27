@@ -35,6 +35,11 @@ export function validarGasto(gasto) {
   return null;
 }
 
+export function validarCategoria(nombre) {
+  const length = nombre.trim().length;
+  return length < 2 || length > 50 ? "El nombre debe tener entre 2 y 50 caracteres." : null;
+}
+
 export function validarEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
 }

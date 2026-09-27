@@ -4,3 +4,7 @@ tmp/
 *.exe
 .env
 .git/
+coverage/
+coverage
+coverage.out
+.cache/

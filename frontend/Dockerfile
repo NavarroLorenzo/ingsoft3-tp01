@@ -15,7 +15,12 @@ COPY . .
 # Genera los archivos estáticos optimizados para producción.
 RUN npm run build
 
-# ---- Etapa 2: runtime (servidor web liviano, sin Node.js) ----
+# ---- Etapa 2: tests y cobertura (reutiliza Node y node_modules) ----
+FROM build AS test
+
+ENTRYPOINT ["npm", "run", "test:coverage"]
+
+# ---- Etapa 3: runtime (servidor web liviano, sin Node.js) ----
 FROM nginx:1.29-alpine
 
 # Configura Nginx para servir la aplicación y sus rutas.
