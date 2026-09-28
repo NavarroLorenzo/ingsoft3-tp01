@@ -5,6 +5,7 @@ import App from "./App";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { LoginPage, RegisterPage } from "./components/AuthForm";
 import { limpiarSesion, guardarSesion, getToken, login, obtenerUsuarioActual, register, setUnauthorizedHandler } from "./api/api";
+import { iniciarSesion } from "./services/iniciarSesion";
 import "./styles.css";
 
 function RouterApp() {
@@ -19,8 +20,7 @@ function RouterApp() {
   }, [navigate]);
 
   async function startSession(action, datos) {
-    const session = await action(datos);
-    guardarSesion(session);
+    const session = await iniciarSesion(datos, { autenticar: action, guardarSesion });
     setUser(session.user);
     navigate("/dashboard", { replace: true });
   }

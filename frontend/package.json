@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "test": "vitest"
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@vitejs/plugin-react": "latest",
@@ -16,6 +18,7 @@
     "vite": "latest"
   },
   "devDependencies": {
+    "@vitest/coverage-v8": "^4.1.10",
     "vitest": "latest"
   }
 }

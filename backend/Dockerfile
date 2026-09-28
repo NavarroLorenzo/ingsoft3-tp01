@@ -13,8 +13,17 @@ COPY . .
 # Compila la aplicación en modo producción
 RUN CGO_ENABLED=0 GOOS=linux go build -o /app/publish/gestor-gastos-api ./cmd/api
 
+# ---- Etapa 2: tests y cobertura (reutiliza el SDK y las dependencias) ----
+FROM build AS test
 
-# ---- Etapa 2: runtime (imagen mínima, sin SDK) ----
+ENV COVERAGE_DIR=/reports
+ENV COVERAGE_THRESHOLD=60
+
+RUN chmod +x /src/scripts/run-tests.sh
+
+ENTRYPOINT ["/src/scripts/run-tests.sh"]
+
+# ---- Etapa 3: runtime (imagen mínima, sin SDK) ----
 FROM alpine:3.22 AS final
 WORKDIR /app
 

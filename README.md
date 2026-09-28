@@ -259,9 +259,34 @@ build-frontend
 
 Ambos pueden ejecutarse en paralelo porque ninguno depende del otro.
 
-Cada job construye su imagen utilizando directamente el Dockerfile correspondiente.
+Cada job construye la imagen de producción y la etapa `test` del Dockerfile correspondiente. La segunda se ejecuta en un contenedor y devuelve un error si falla un test o el quality gate de cobertura.
 
-De esta forma, el pipeline utiliza el mismo proceso de build que se usa para ejecutar la aplicación con Docker.
+De esta forma, el pipeline utiliza el mismo proceso de build que se usa para ejecutar la aplicación con Docker. Los reportes de coverage se publican en el Summary de la corrida y como artefactos descargables llamados `coverage-backend` y `coverage-frontend`.
+
+---
+
+## Tests y cobertura
+
+Para verificar localmente las etapas de tests de Docker y el rechazo por cobertura insuficiente, iniciar Docker Desktop y ejecutar desde la raíz del proyecto en PowerShell:
+
+```powershell
+& .\scripts\verify-tp5-local.ps1
+```
+
+El script construye las dos imágenes de prueba, ejecuta los casos verdes y monta funciones temporales sin tests para obtener los casos rojos. Comprueba que esos casos compilen, que los tests sigan pasando y que el código de salida sea `1` por cobertura. No cambia los umbrales ni el código de producción, no ejecuta Git y no publica imágenes. Guarda logs, HTML, perfiles, resúmenes y `result.json` en `.cache/tp5-verification/docker-<fecha>/`. Una corrida solo queda confirmada cuando termina con `VERIFICACION COMPLETA` y el resultado indica `status: passed`.
+
+El backend se prueba con el paquete estándar `testing` de Go y `go-sqlmock`. La cobertura incluye autenticación, validaciones, handlers, middleware y los modelos que tienen comportamiento. Se excluyen el arranque (`cmd/api`) y la conexión/migración de base de datos, porque son wiring e infraestructura. Go reporta cobertura de **sentencias**, no de ramas.
+
+El frontend usa Vitest sin DOM. La cobertura incluye el cliente HTTP, el servicio de sesión y las utilidades de formato y validación. Los componentes visuales quedan fuera porque sus reglas se extrajeron a utilidades cubiertas; sus pruebas de interfaz se harán como E2E en una etapa posterior de la materia.
+
+Los umbrales actuales son:
+
+| Parte | Métrica exigida | Umbral |
+|---|---|---:|
+| Backend | Sentencias | 60% |
+| Frontend | Líneas, ramas, funciones y sentencias | 100% |
+
+Para ejecutar las pruebas con Docker se construye el target `test` de cada Dockerfile y se monta una carpeta local como `/reports` en backend o `/app/coverage` en frontend. La etapa de producción permanece separada y no contiene SDK, Node ni tests.
 
 ---
 
@@ -411,6 +436,14 @@ Se implementó:
 
 ---
 
+### TP5 — Calidad automatizada
+
+Se agregó una suite de tests de unidad con mocks, cobertura en backend y frontend, reportes descargables, resumen visible en GitHub Actions y quality gates que bloquean el merge cuando la cobertura baja.
+
+**Cierre previsto:** `v5.0.0`, una vez que la secuencia de Pull Requests esté completada.
+
+---
+
 ## Releases
 
 Cada trabajo práctico tiene una release asociada para dejar marcado el estado del repositorio correspondiente a esa entrega.
@@ -420,6 +453,7 @@ TP1 → v1.0.0
 TP2 → v2.0.0
 TP3 → v3.0.0
 TP4 → v4.0.0
+TP5 → v5.0.0 (pendiente de cierre)
 ```
 
 ---

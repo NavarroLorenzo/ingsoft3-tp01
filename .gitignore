@@ -4,6 +4,10 @@ bin/
 obj/
 dist/
 build/
+coverage/
+backend/coverage
+.cache/
+.npm-cache/
 
 # secretos: NUNCA se versionan
 .env

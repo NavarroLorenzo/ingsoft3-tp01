@@ -18,6 +18,26 @@ export function fechaActual() {
   return new Date().toLocaleDateString("en-CA");
 }
 
+export function validarFechaGasto(fecha) {
+  if (typeof fecha !== "string" || fecha.trim() === "") {
+    return "La fecha es obligatoria.";
+  }
+
+  const [anio, mes, dia] = fecha.split("-").map(Number);
+  const fechaParseada = new Date(`${fecha}T00:00:00Z`);
+  const formatoISO = /^\d{4}-\d{2}-\d{2}$/.test(fecha);
+  const fechaExiste = !Number.isNaN(fechaParseada.getTime())
+    && fechaParseada.getUTCFullYear() === anio
+    && fechaParseada.getUTCMonth() + 1 === mes
+    && fechaParseada.getUTCDate() === dia;
+
+  if (!formatoISO || !fechaExiste) {
+    return "La fecha debe tener el formato YYYY-MM-DD y ser una fecha válida.";
+  }
+
+  return null;
+}
+
 export function validarGasto(gasto) {
   const descripcion = gasto.descripcion.trim();
   if (descripcion.length < 3 || descripcion.length > 200) {
@@ -30,9 +50,15 @@ export function validarGasto(gasto) {
   if (Math.abs(monto * 100 - Math.round(monto * 100)) > 0.000001) {
     return "El monto puede tener como máximo dos decimales.";
   }
-  if (!gasto.fecha) return "La fecha es obligatoria.";
+  const errorFecha = validarFechaGasto(gasto.fecha);
+  if (errorFecha) return errorFecha;
   if (!gasto.categoriaId) return "La categoría es obligatoria.";
   return null;
+}
+
+export function validarCategoria(nombre) {
+  const length = nombre.trim().length;
+  return length < 2 || length > 50 ? "El nombre debe tener entre 2 y 50 caracteres." : null;
 }
 
 export function validarEmail(email) {

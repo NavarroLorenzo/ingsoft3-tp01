@@ -177,3 +177,94 @@ Conservé `docker-compose.yml` para desarrollo local, donde Docker construye las
 ## Trazabilidad de las imágenes
 
 Agregué etiquetas OCI en ambos Dockerfiles con la URL del repositorio. Esto vincula los packages publicados con su código fuente en GitHub y deja identificada la procedencia de cada imagen.
+
+# Decisiones — TP5
+
+## Lógica elegida para testear
+
+Elegí probar las partes donde un error podría dejar cargar un gasto mal, mostrar información de otro usuario o dejar una categoría en un estado raro. Por eso cubrí validación de montos, fechas y categorías, login, gastos de otro usuario y el borrado de categorías con gastos.
+
+En el backend agregué casos de borde como monto `0`, tres decimales, descripción muy corta, fecha bisiesta y fechas que no existen. También probé que al pedir un gasto de otro usuario la consulta siga filtrando por `usuario_id`. Si se sacara ese filtro, ese test se pondría en rojo.
+
+En el frontend dejé las reglas importantes en utilidades, sin depender de la pantalla. Por ejemplo, la validación de categorías salió del componente y quedó en una función que se puede probar directamente.
+
+## Suite, parametrización y mocks
+
+En Go usé tablas de casos y `t.Run()` para no repetir tests parecidos. Hay más de ocho tests repartidos entre validaciones, autenticación, categorías, gastos, resumen y healthcheck. Los armé siguiendo la idea de preparar datos, ejecutar algo y comprobar el resultado.
+
+Para el mock del backend usé `go-sqlmock`, que simula la base de datos. No sólo devuelve datos preparados: también permite comprobar cómo se hizo una consulta. En el test de un gasto ajeno verifico que se busque el gasto `99` para el usuario `2`; así no alcanza con que el handler devuelva cualquier respuesta.
+
+En el frontend usé `vi.fn()` para el inicio de sesión. El test comprueba que se autentique una vez y que se guarde exactamente la sesión recibida. También uso un `fetch` simulado para probar las llamadas a la API sin depender de internet ni del backend.
+
+## Herramientas equivalentes en este stack
+
+| Necesidad | Backend Go | Frontend React/Vite |
+|---|---|---|
+| Parametrización | tabla de casos + `t.Run()` | `it.each()` |
+| Doble/mocking | `go-sqlmock` | `vi.fn()` |
+| Medición | `go test -coverprofile` + `go tool cover` | `vitest run --coverage` + `@vitest/coverage-v8` |
+| Umbral que frena | script `run-tests.sh`, que compara el total | `coverage.thresholds` de Vitest |
+| Alcance de la medición | `-coverpkg` con paquetes de lógica | `coverage.include` para API, servicios y utilidades |
+
+## Cobertura y quality gate
+
+El backend dio **61,3% de sentencias**, así que dejé el límite en **60%**. No elegí un número al azar: queda apenas debajo de lo que hoy tenemos y sirve para detectar código nuevo sin tests.
+
+Go no mide branch coverage con su herramienta estándar; `go test -cover` mide sentencias. Por eso el Summary del backend informa explícitamente que la cobertura de ramas no está disponible y no presenta ese número como si existiera.
+
+En el frontend las utilidades, el cliente HTTP y el servicio de sesión dan **100%** en líneas, ramas, funciones y sentencias. Como son partes chicas y sin pantalla ni red, decidí exigir 100%: si aparece una regla nueva ahí, tiene que venir con su test.
+
+Tener mucha cobertura no significa automáticamente que todo esté bien. Podría llamar una función sin comprobar nada y sumar cobertura igual. Por eso los tests revisan valores, mensajes, códigos HTTP y llamadas a los mocks, no solamente que el código se ejecute.
+
+## Alcance excluido de la cobertura
+
+En backend no entran `cmd/api`, porque solamente cablea variables de entorno, router y servidor, ni `internal/database`, porque concentra la conexión, migración y seed de PostgreSQL. Sí entran handlers, middleware y modelos con comportamiento: ahí están las reglas de acceso y el contrato JSON.
+
+En frontend entran `src/api`, `src/services` y `src/utils`. Quedan afuera `main.jsx`, `App.jsx` y los componentes visuales porque son wiring y presentación; las reglas que antes vivían dentro de `Categorias.jsx` se extrajeron a `validarCategoria`, que sí está incluida. Las pruebas de interacción con la interfaz se abordarán como E2E, no como tests unitarios con DOM.
+
+## Ejercicio del camino sin cubrir
+
+Al mirar el reporte del backend encontré una parte sin recorrer: cuando alguien intenta registrarse con la contraseña vacía. La entrada concreta fue un usuario válido con `Password: ""`.
+
+Agregué `TestValidateRegisterRejectsEmptyPassword` para comprobar que se devuelva el mensaje correcto. Con eso, la validación de contraseña pasó de 83,3% a 100% y el backend subió de 61,0% a 61,3%. No cambié la regla para subir el número: solamente agregué el caso que faltaba probar.
+
+## Pipeline y evidencias
+
+### Prueba local con Docker
+
+Antes de subirlo, ejecuté `scripts/verify-tp5-local.ps1` con Docker Desktop. El script construye las dos etapas de test y prueba tanto el caso verde como uno con código sin tests.
+
+| Caso | Cobertura | Umbral | Salida del contenedor |
+|---|---|---|---|
+| Backend original | 61,3% de sentencias | 60% | `0`, aprobado |
+| Backend con función temporal sin tests | 58,0% de sentencias | 60% | `1`, rechazado por cobertura |
+| Frontend original | 100% en líneas, ramas, funciones y sentencias | 100% en las cuatro | `0`, aprobado |
+| Frontend con función temporal sin tests | 92,53% líneas; 87,5% ramas; 96,66% funciones; 88,88% sentencias | 100% en las cuatro | `1`, rechazado por cobertura |
+
+En los casos rojos el código compiló y los tests existentes pasaron. El fallo fue solamente porque bajó la cobertura. No cambié los límites ni rompí un test para forzar el rojo.
+
+También comprobé que se generaran los HTML y los resúmenes de cobertura de los dos lados. Los archivos locales quedaron guardados en `.cache/tp5-verification/`.
+
+### Prueba en GitHub
+
+Conservé los mismos checks del TP4: `build-backend` y `build-frontend`. Son obligatorios para hacer merge a `main`, así que no hizo falta crear otro freno en GitHub.
+
+La demostración se hizo en el [PR #25](https://github.com/NavarroLorenzo/ingsoft3-tp01/pull/25). Primero agregué una validación de fecha sin sus tests. El código compiló y los 32 tests que ya existían pasaron, pero el frontend quedó rojo porque bajó a 98,61% de líneas, 98,52% de ramas y 98,78% de sentencias. La corrida roja es [esta](https://github.com/NavarroLorenzo/ingsoft3-tp01/actions/runs/36472809700).
+
+Después agregué los cinco casos que faltaban: fecha no enviada, vacía, formato incorrecto, fecha inexistente y una fecha bisiesta válida. El frontend pasó a tener 37 tests y volvió a 100% en las cuatro métricas. La corrida verde es [esta](https://github.com/NavarroLorenzo/ingsoft3-tp01/actions/runs/36473208001).
+
+Queda pendiente mergear este primer PR y crear el segundo PR chiquito, con código sin tests, para dejarlo abierto y rojo hasta la defensa. Cuando exista, agrego también su enlace acá.
+
+Después de mergear el primer PR voy a crear el tag y la release `v5.0.0` sobre ese commit de `main`, que es el punto correcto para dejar cerrada esta versión.
+
+## Problemas encontrados y resolución
+
+Al principio faltaba instalar el paquete de cobertura de Vitest. Lo agregué junto con las demás dependencias.
+
+También tuve que ajustar cómo Go elegía los paquetes para medir porque el primer intento no los encontraba bien.
+
+En el frontend apareció un problema al generar el reporte dentro de Docker: Vitest quería limpiar la misma carpeta que Docker estaba usando para guardar el resultado. Dejé los reportes en una subcarpeta y con eso quedó funcionando.
+
+## Uso de IA
+
+Usé ChatGPT/Codex para revisar el código, pensar los casos de prueba y preparar la configuración. Después fui ejecutando los tests, revisando los mensajes y mirando las corridas de GitHub. En la defensa puedo explicar qué comprueba cada test y por qué el PR quedó bloqueado aunque los tests pasaran.

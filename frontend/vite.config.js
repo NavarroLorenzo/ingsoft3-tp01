@@ -10,6 +10,24 @@ export default defineConfig({
     }
   },
   test: {
-    environment: "node"
+    environment: "node",
+    include: ["tests/**/*.test.js"],
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "json-summary", "html", "lcov"],
+      // Docker monta coverage/; Vitest puede limpiar esta subcarpeta sin borrar el montaje.
+      reportsDirectory: "coverage/report",
+      include: [
+        "src/api/**/*.js",
+        "src/services/**/*.js",
+        "src/utils/**/*.js"
+      ],
+      thresholds: {
+        lines: 100,
+        functions: 100,
+        statements: 100,
+        branches: 100
+      }
+    }
   }
 });
