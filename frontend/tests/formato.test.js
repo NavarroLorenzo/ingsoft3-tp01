@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { fechaActual, formatearFecha, formatearMoneda, validarCategoria, validarEmail, validarGasto, validarRegistro } from "../src/utils/formato";
+import { fechaActual, formatearFecha, formatearMoneda, validarCategoria, validarEmail, validarFechaGasto, validarGasto, validarRegistro } from "../src/utils/formato";
 
 const gastoValido = {
   descripcion: "Supermercado",
@@ -25,6 +25,19 @@ describe("formato", () => {
     vi.setSystemTime(new Date("2026-08-12T12:00:00Z"));
 
     expect(fechaActual()).toBe("2026-08-12");
+  });
+
+  it.each([
+    ["fecha no provista", undefined, "obligatoria"],
+    ["fecha vacía", "", "obligatoria"],
+    ["formato distinto de ISO", "12/08/2026", "formato"],
+    ["día inexistente", "2026-02-30", "fecha válida"]
+  ])("rechaza una %s", (_nombre, fecha, mensaje) => {
+    expect(validarFechaGasto(fecha)).toContain(mensaje);
+  });
+
+  it("acepta una fecha ISO real, incluso en año bisiesto", () => {
+    expect(validarFechaGasto("2028-02-29")).toBeNull();
   });
 
   it.each([
