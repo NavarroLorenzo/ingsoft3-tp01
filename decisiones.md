@@ -253,9 +253,9 @@ La demostración se hizo en el [PR #25](https://github.com/NavarroLorenzo/ingsof
 
 Después agregué los cinco casos que faltaban: fecha no enviada, vacía, formato incorrecto, fecha inexistente y una fecha bisiesta válida. El frontend pasó a tener 37 tests y volvió a 100% en las cuatro métricas. La corrida verde es [esta](https://github.com/NavarroLorenzo/ingsoft3-tp01/actions/runs/36473208001).
 
-Queda pendiente mergear este primer PR y crear el segundo PR chiquito, con código sin tests, para dejarlo abierto y rojo hasta la defensa. Cuando exista, agrego también su enlace acá.
+Después de volver verde el PR #25, lo integré a `main` y publiqué la release `v5.0.0` desde ese commit.
 
-Después de mergear el primer PR voy a crear el tag y la release `v5.0.0` sobre ese commit de `main`, que es el punto correcto para dejar cerrada esta versión.
+También dejé abierto el [PR #26](https://github.com/NavarroLorenzo/ingsoft3-tp01/pull/26) para la defensa. Agrega una validación real para la descripción de un gasto, pero no tiene tests específicos para esa regla. El build sigue pasando y los 37 tests existentes quedan verdes, pero `build-frontend` falla porque la cobertura baja a 98,7% de líneas, 98,86% de sentencias y 97,29% de ramas. No se mergea ni se corrige hasta la defensa: sirve para mostrar que el quality gate bloquea cambios aunque no haya tests fallando.
 
 ## Problemas encontrados y resolución
 
