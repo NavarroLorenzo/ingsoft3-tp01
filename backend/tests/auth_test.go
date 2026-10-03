@@ -21,7 +21,7 @@ import (
 
 const authSecret = "test-jwt-secret"
 
-func TestPasswordHashAndJWT(t *testing.T) {
+func TestContrasenaSeGuardaComoHashYRechazaUnaClaveIncorrecta(t *testing.T) {
 	hash, err := auth.HashPassword("12345678")
 	if err != nil {
 		t.Fatal(err)
@@ -32,6 +32,9 @@ func TestPasswordHashAndJWT(t *testing.T) {
 	if auth.ComparePassword(hash, "incorrecta") == nil {
 		t.Fatal("una contraseña incorrecta no debe validarse")
 	}
+}
+
+func TestTokenConservaUsuarioYRechazaOtraFirma(t *testing.T) {
 	token, err := auth.GenerateToken(models.Usuario{ID: 7, Email: "ana@example.com"}, authSecret)
 	if err != nil {
 		t.Fatal(err)
@@ -45,7 +48,7 @@ func TestPasswordHashAndJWT(t *testing.T) {
 	}
 }
 
-func TestExpiredJWTIsRejected(t *testing.T) {
+func TestTokenVencidoEsRechazado(t *testing.T) {
 	claims := auth.Claims{UserID: 1, Email: "ana@example.com", RegisteredClaims: jwt.RegisteredClaims{IssuedAt: jwt.NewNumericDate(time.Now().Add(-2 * time.Hour)), ExpiresAt: jwt.NewNumericDate(time.Now().Add(-time.Hour))}}
 	token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(authSecret))
 	if err != nil {
@@ -56,7 +59,7 @@ func TestExpiredJWTIsRejected(t *testing.T) {
 	}
 }
 
-func TestProtectedRouteAuthentication(t *testing.T) {
+func TestRutaProtegidaExigeTokenEIdentificaAlUsuario(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
 	router.GET("/protegida", middleware.AuthRequired(authSecret), func(c *gin.Context) { c.JSON(http.StatusOK, gin.H{"userId": c.MustGet("userID")}) })
@@ -78,7 +81,7 @@ func TestProtectedRouteAuthentication(t *testing.T) {
 	}
 }
 
-func TestUserInputValidation(t *testing.T) {
+func TestRegistroNormalizaDatosYRechazaContrasenaCorta(t *testing.T) {
 	valid := validation.RegisterInput{Nombre: " Ana ", Email: " ANA@EXAMPLE.COM ", Password: "12345678"}
 	if err := validation.ValidateRegister(&valid); err != nil {
 		t.Fatal(err)
@@ -91,7 +94,7 @@ func TestUserInputValidation(t *testing.T) {
 	}
 }
 
-func TestRegisterAndLoginHandlers(t *testing.T) {
+func TestRegistroCreaUsuarioYDevuelveToken(t *testing.T) {
 	db, mock := testDB(t)
 	router := handlers.NewRouter(&handlers.Handler{DB: db, JWTSecret: authSecret})
 	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "usuarios"`)).WillReturnRows(sqlmock.NewRows([]string{"id"}))
@@ -109,17 +112,19 @@ func TestRegisterAndLoginHandlers(t *testing.T) {
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Fatal(err)
 	}
+}
 
-	db, mock = testDB(t)
-	router = handlers.NewRouter(&handlers.Handler{DB: db, JWTSecret: authSecret})
+func TestInicioSesionDevuelveTokenConCredencialesValidas(t *testing.T) {
+	db, mock := testDB(t)
+	router := handlers.NewRouter(&handlers.Handler{DB: db, JWTSecret: authSecret})
 	hash, err := auth.HashPassword("12345678")
 	if err != nil {
 		t.Fatal(err)
 	}
 	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "usuarios"`)).WillReturnRows(sqlmock.NewRows([]string{"id", "nombre", "email", "password_hash", "created_at"}).AddRow(1, "Ana", "ana@example.com", hash, time.Now()))
-	body, _ = json.Marshal(validation.LoginInput{Email: "ana@example.com", Password: "12345678"})
-	response = httptest.NewRecorder()
-	request = httptest.NewRequest(http.MethodPost, "/api/auth/login", bytes.NewReader(body))
+	body, _ := json.Marshal(validation.LoginInput{Email: "ana@example.com", Password: "12345678"})
+	response := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodPost, "/api/auth/login", bytes.NewReader(body))
 	request.Header.Set("Content-Type", "application/json")
 	router.ServeHTTP(response, request)
 	if response.Code != http.StatusOK || !bytes.Contains(response.Body.Bytes(), []byte(`"token"`)) {
@@ -130,7 +135,7 @@ func TestRegisterAndLoginHandlers(t *testing.T) {
 	}
 }
 
-func TestRegisterDuplicateAndCrossUserExpenseIsHidden(t *testing.T) {
+func TestRegistroRechazaEmailDuplicado(t *testing.T) {
 	db, mock := testDB(t)
 	router := handlers.NewRouter(&handlers.Handler{DB: db, JWTSecret: authSecret})
 	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "usuarios"`)).WillReturnRows(sqlmock.NewRows([]string{"id", "nombre", "email"}).AddRow(1, "Ana", "ana@example.com"))
@@ -144,16 +149,18 @@ func TestRegisterDuplicateAndCrossUserExpenseIsHidden(t *testing.T) {
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Fatal(err)
 	}
+}
 
-	db, mock = testDB(t)
-	router = handlers.NewRouter(&handlers.Handler{DB: db, JWTSecret: authSecret})
+func TestInicioSesionRechazaContrasenaIncorrecta(t *testing.T) {
+	db, mock := testDB(t)
+	router := handlers.NewRouter(&handlers.Handler{DB: db, JWTSecret: authSecret})
 	hash, err := auth.HashPassword("12345678")
 	if err != nil {
 		t.Fatal(err)
 	}
 	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "usuarios"`)).WillReturnRows(sqlmock.NewRows([]string{"id", "nombre", "email", "password_hash", "created_at"}).AddRow(1, "Ana", "ana@example.com", hash, time.Now()))
-	response = httptest.NewRecorder()
-	request = httptest.NewRequest(http.MethodPost, "/api/auth/login", bytes.NewBufferString(`{"email":"ana@example.com","password":"incorrecta"}`))
+	response := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodPost, "/api/auth/login", bytes.NewBufferString(`{"email":"ana@example.com","password":"incorrecta"}`))
 	request.Header.Set("Content-Type", "application/json")
 	router.ServeHTTP(response, request)
 	if response.Code != http.StatusUnauthorized {
@@ -162,16 +169,18 @@ func TestRegisterDuplicateAndCrossUserExpenseIsHidden(t *testing.T) {
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Fatal(err)
 	}
+}
 
-	db, mock = testDB(t)
-	router = handlers.NewRouter(&handlers.Handler{DB: db, JWTSecret: authSecret})
+func TestConsultaGastoFiltraPorUsuarioAutenticado(t *testing.T) {
+	db, mock := testDB(t)
+	router := handlers.NewRouter(&handlers.Handler{DB: db, JWTSecret: authSecret})
 	token, err := auth.GenerateToken(models.Usuario{ID: 2, Email: "beto@example.com"}, authSecret)
 	if err != nil {
 		t.Fatal(err)
 	}
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "gastos"`)).WillReturnRows(sqlmock.NewRows([]string{"id"}))
-	response = httptest.NewRecorder()
-	request = httptest.NewRequest(http.MethodGet, "/api/gastos/99", nil)
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "gastos" WHERE id = $1 AND usuario_id = $2 ORDER BY "gastos"."id" LIMIT $3`)).WithArgs(99, 2, 1).WillReturnRows(sqlmock.NewRows([]string{"id"}))
+	response := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodGet, "/api/gastos/99", nil)
 	request.Header.Set("Authorization", "Bearer "+token)
 	router.ServeHTTP(response, request)
 	if response.Code != http.StatusNotFound {
@@ -182,7 +191,7 @@ func TestRegisterDuplicateAndCrossUserExpenseIsHidden(t *testing.T) {
 	}
 }
 
-func TestCrossUserMutationsAreHiddenAndSummaryIsScoped(t *testing.T) {
+func TestEditarGastoDeOtroUsuarioDevuelveNoEncontrado(t *testing.T) {
 	token, err := auth.GenerateToken(models.Usuario{ID: 2, Email: "beto@example.com"}, authSecret)
 	if err != nil {
 		t.Fatal(err)
@@ -190,7 +199,7 @@ func TestCrossUserMutationsAreHiddenAndSummaryIsScoped(t *testing.T) {
 
 	db, mock := testDB(t)
 	router := handlers.NewRouter(&handlers.Handler{DB: db, JWTSecret: authSecret})
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "gastos"`)).WillReturnRows(sqlmock.NewRows([]string{"id"}))
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "gastos" WHERE id = $1 AND usuario_id = $2 ORDER BY "gastos"."id" LIMIT $3`)).WithArgs(99, 2, 1).WillReturnRows(sqlmock.NewRows([]string{"id"}))
 	response := httptest.NewRecorder()
 	request := httptest.NewRequest(http.MethodPut, "/api/gastos/99", bytes.NewBufferString(`{"descripcion":"Gasto válido","monto":100,"fecha":"2026-08-12","categoriaId":1}`))
 	request.Header.Set("Content-Type", "application/json")
@@ -202,15 +211,16 @@ func TestCrossUserMutationsAreHiddenAndSummaryIsScoped(t *testing.T) {
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Fatal(err)
 	}
+}
 
-	db, mock = testDB(t)
-	router = handlers.NewRouter(&handlers.Handler{DB: db, JWTSecret: authSecret})
+func TestEliminarGastoDeOtroUsuarioDevuelveNoEncontrado(t *testing.T) {
+	db, mock := testDB(t)
+	router := handlers.NewRouter(&handlers.Handler{DB: db, JWTSecret: authSecret})
 	mock.ExpectBegin()
-	mock.ExpectExec(regexp.QuoteMeta(`DELETE FROM "gastos"`)).WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectExec(regexp.QuoteMeta(`DELETE FROM "gastos" WHERE id = $1 AND usuario_id = $2`)).WithArgs(99, 2).WillReturnResult(sqlmock.NewResult(0, 0))
 	mock.ExpectCommit()
-	response = httptest.NewRecorder()
-	request = httptest.NewRequest(http.MethodDelete, "/api/gastos/99", nil)
-	request.Header.Set("Authorization", "Bearer "+token)
+	response := httptest.NewRecorder()
+	request := authenticatedRequest(t, http.MethodDelete, "/api/gastos/99", 2)
 	router.ServeHTTP(response, request)
 	if response.Code != http.StatusNotFound {
 		t.Fatalf("eliminación cruzada: status=%d", response.Code)
@@ -218,14 +228,15 @@ func TestCrossUserMutationsAreHiddenAndSummaryIsScoped(t *testing.T) {
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Fatal(err)
 	}
+}
 
-	db, mock = testDB(t)
-	router = handlers.NewRouter(&handlers.Handler{DB: db, JWTSecret: authSecret})
-	mock.ExpectQuery(`SELECT COALESCE\(SUM\(monto\), 0\).*usuario_id`).WillReturnRows(sqlmock.NewRows([]string{"total", "cantidad_gastos"}).AddRow(20, 1))
-	mock.ExpectQuery(`SELECT gastos\.categoria_id.*gastos\.usuario_id`).WillReturnRows(sqlmock.NewRows([]string{"categoria_id", "categoria", "total"}).AddRow(1, "Comida", 20))
-	response = httptest.NewRecorder()
-	request = httptest.NewRequest(http.MethodGet, "/api/resumen", nil)
-	request.Header.Set("Authorization", "Bearer "+token)
+func TestResumenSoloIncluyeGastosDelUsuarioAutenticado(t *testing.T) {
+	db, mock := testDB(t)
+	router := handlers.NewRouter(&handlers.Handler{DB: db, JWTSecret: authSecret})
+	mock.ExpectQuery(`SELECT COALESCE\(SUM\(monto\), 0\).*usuario_id`).WithArgs(2).WillReturnRows(sqlmock.NewRows([]string{"total", "cantidad_gastos"}).AddRow(20, 1))
+	mock.ExpectQuery(`SELECT gastos\.categoria_id.*gastos\.usuario_id`).WithArgs(2).WillReturnRows(sqlmock.NewRows([]string{"categoria_id", "categoria", "total"}).AddRow(1, "Comida", 20))
+	response := httptest.NewRecorder()
+	request := authenticatedRequest(t, http.MethodGet, "/api/resumen", 2)
 	router.ServeHTTP(response, request)
 	if response.Code != http.StatusOK || !bytes.Contains(response.Body.Bytes(), []byte(`"total":20`)) {
 		t.Fatalf("resumen: status=%d body=%s", response.Code, response.Body.String())

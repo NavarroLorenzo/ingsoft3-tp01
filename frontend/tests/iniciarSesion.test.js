@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { iniciarSesion } from "../src/services/iniciarSesion";
 
-describe("iniciarSesion", () => {
+describe("inicio de sesión", () => {
   it("autentica y guarda exactamente la sesión obtenida", async () => {
     const datos = { email: "ana@example.com", password: "12345678" };
     const sesion = { token: "jwt-demo", user: { id: 1, nombre: "Ana" } };

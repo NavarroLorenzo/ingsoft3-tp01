@@ -15,7 +15,7 @@ func validInput() validation.GastoInput {
 	}
 }
 
-func TestValidateGasto(t *testing.T) {
+func TestValidacionGastoSegunDatos(t *testing.T) {
 	tests := []struct {
 		name  string
 		input validation.GastoInput
