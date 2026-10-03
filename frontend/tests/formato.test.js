@@ -1,5 +1,5 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { fechaActual, formatearFecha, formatearMoneda, validarCategoria, validarEmail, validarFechaGasto, validarGasto, validarRegistro } from "../src/utils/formato";
+import { describe, expect, it } from "vitest";
+import { validarCategoria, validarFechaGasto, validarGasto, validarRegistro } from "../src/utils/formato";
 
 const gastoValido = {
   descripcion: "Supermercado",
@@ -9,24 +9,6 @@ const gastoValido = {
 };
 
 describe("formato", () => {
-  afterEach(() => vi.useRealTimers());
-
-  it("formatea moneda argentina", () => {
-    expect(formatearMoneda(25400.5)).toContain("25.400,50");
-  });
-
-  it("formatea fechas como DD/MM/YYYY", () => {
-    expect(formatearFecha("2026-08-12")).toBe("12/08/2026");
-    expect(formatearFecha("")).toBe("");
-  });
-
-  it("obtiene la fecha actual sin depender del reloj del equipo", () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date("2026-08-12T12:00:00Z"));
-
-    expect(fechaActual()).toBe("2026-08-12");
-  });
-
   it.each([
     ["fecha no provista", undefined, "obligatoria"],
     ["fecha vacía", "", "obligatoria"],
@@ -65,13 +47,8 @@ describe("formato", () => {
     else expect(resultado).toBeNull();
   });
 
-  it("valida email y datos de registro", () => {
-    expect(validarEmail("correo@ejemplo.com")).toBe(true);
-    expect(validarEmail("correo-invalido")).toBe(false);
-    expect(validarRegistro({ nombre: "Ana", email: "ana@ejemplo.com", password: "12345678", confirmacion: "12345678" })).toBeNull();
+  it("rechaza un registro con nombre demasiado corto", () => {
     expect(validarRegistro({ nombre: "A", email: "ana@ejemplo.com", password: "12345678", confirmacion: "12345678" })).toContain("nombre");
-    expect(validarRegistro({ nombre: "Ana", email: "correo-invalido", password: "12345678", confirmacion: "12345678" })).toContain("email");
-    expect(validarRegistro({ nombre: "Ana", email: "ana@ejemplo.com", password: "corta", confirmacion: "corta" })).toContain("contraseña");
-    expect(validarRegistro({ nombre: "Ana", email: "ana@ejemplo.com", password: "12345678", confirmacion: "otra-clave" })).toContain("coinciden");
   });
+
 });

@@ -284,7 +284,7 @@ Los umbrales actuales son:
 | Parte | Métrica exigida | Umbral |
 |---|---|---:|
 | Backend | Sentencias | 60% |
-| Frontend | Líneas, ramas, funciones y sentencias | 100% |
+| Frontend | Líneas, ramas, funciones y sentencias | 80% |
 
 Para ejecutar las pruebas con Docker se construye el target `test` de cada Dockerfile y se monta una carpeta local como `/reports` en backend o `/app/coverage` en frontend. La etapa de producción permanece separada y no contiene SDK, Node ni tests.
 

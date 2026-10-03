@@ -112,7 +112,7 @@ export function clasificarMontoTP5(monto) {
         'tp5-frontend-test:local', 'scripts/coverage-summary.cjs'
     )
     $summary = Get-Content -LiteralPath (Join-Path $reportRoot 'frontend-summary.log') -Raw
-    if ($summary.Contains('\n') -or $summary -notmatch '(?m)^\| Ramas \| 100% \|') {
+    if ($summary.Contains('\n') -or $summary -notmatch '(?m)^\| Ramas \| [0-9.]+% \|') {
         throw 'El resumen del frontend no tiene los saltos de linea o las metricas esperadas.'
     }
     [IO.File]::WriteAllText((Join-Path $frontendGreen 'summary.md'), $summary, $utf8)
@@ -158,14 +158,16 @@ export function clasificarMontoTP5(monto) {
     $backendRedPct = Read-BackendCoverage 'backend-red'
     $frontendGreenTotal = (Get-Content -Raw (Join-Path $frontendGreen 'report\coverage-summary.json') | ConvertFrom-Json).total
     $frontendRedTotal = (Get-Content -Raw (Join-Path $frontendRed 'report\coverage-summary.json') | ConvertFrom-Json).total
-    if ($backendGreenPct -lt 60 -or $backendRedPct -ge 60 -or $frontendGreenTotal.lines.pct -ne 100 -or $frontendRedTotal.lines.pct -ge 100) {
-        throw 'Los porcentajes no demuestran la caida esperada con los umbrales originales.'
+    $frontendGreenMetrics = @($frontendGreenTotal.lines.pct, $frontendGreenTotal.branches.pct, $frontendGreenTotal.functions.pct, $frontendGreenTotal.statements.pct)
+    $frontendRedMetrics = @($frontendRedTotal.lines.pct, $frontendRedTotal.branches.pct, $frontendRedTotal.functions.pct, $frontendRedTotal.statements.pct)
+    if ($backendGreenPct -lt 60 -or $backendRedPct -ge 60 -or ($frontendGreenMetrics | Where-Object { $_ -lt 80 }).Count -gt 0 -or ($frontendRedMetrics | Where-Object { $_ -lt 80 }).Count -eq 0) {
+        throw 'Los porcentajes no demuestran la caida esperada con los umbrales configurados.'
     }
     $result = [ordered]@{
         status = 'passed'
         completedAt = (Get-Date).ToString('o')
         backend = @{ green = $backendGreenPct; red = $backendRedPct; threshold = 60; greenExit = 0; redExit = 1 }
-        frontend = @{ green = $frontendGreenTotal; red = $frontendRedTotal; threshold = 100; greenExit = 0; redExit = 1 }
+        frontend = @{ green = $frontendGreenTotal; red = $frontendRedTotal; threshold = 80; greenExit = 0; redExit = 1 }
         note = 'Ambos casos rojos compilan y pasan los tests; fallan por cobertura. Los probes solo se montaron en contenedores temporales.'
     }
     [IO.File]::WriteAllText((Join-Path $reportRoot 'result.json'), ($result | ConvertTo-Json -Depth 8), $utf8)

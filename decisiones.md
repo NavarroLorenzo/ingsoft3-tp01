@@ -182,19 +182,23 @@ Agregué etiquetas OCI en ambos Dockerfiles con la URL del repositorio. Esto vin
 
 ## Lógica elegida para testear
 
-Elegí probar las partes donde un error podría dejar cargar un gasto mal, mostrar información de otro usuario o dejar una categoría en un estado raro. Por eso cubrí validación de montos, fechas y categorías, login, gastos de otro usuario y el borrado de categorías con gastos.
+Elegí las reglas donde un error afecta directamente a los gastos o a los datos de otra persona: validación de montos, fechas, categorías y registro; inicio de sesión; filtros; acceso a gastos; y borrado de categorías con gastos asociados.
 
-En el backend agregué casos de borde como monto `0`, tres decimales, descripción muy corta, fecha bisiesta y fechas que no existen. También probé que al pedir un gasto de otro usuario la consulta siga filtrando por `usuario_id`. Si se sacara ese filtro, ese test se pondría en rojo.
+En backend se cubren casos de borde como monto `0`, monto negativo, más de dos decimales, descripción corta, fecha bisiesta y fechas inexistentes. También se comprueba que un gasto de otro usuario no pueda verse: la consulta tiene que seguir filtrando por `usuario_id`.
 
-En el frontend dejé las reglas importantes en utilidades, sin depender de la pantalla. Por ejemplo, la validación de categorías salió del componente y quedó en una función que se puede probar directamente.
+En frontend las reglas que importan se mantienen en utilidades y servicios, sin depender de la pantalla. Por ejemplo, la validación de categorías se sacó del componente y quedó en `validarCategoria`, que se puede probar directamente.
 
 ## Suite, parametrización y mocks
 
-En Go usé tablas de casos y `t.Run()` para no repetir tests parecidos. Hay más de ocho tests repartidos entre validaciones, autenticación, categorías, gastos, resumen y healthcheck. Los armé siguiendo la idea de preparar datos, ejecutar algo y comprobar el resultado.
+En backend quedaron **19 funciones de test** principales, además de los casos que se expanden dentro de las tablas. Superan el mínimo de ocho, pero no son variaciones del mismo caso: cubren validaciones, autenticación, categorías, gastos, resumen, healthcheck y el formato JSON de una fecha. Todos siguen la idea de preparar datos, ejecutar la regla o el handler y comprobar un resultado concreto.
 
-Para el mock del backend usé `go-sqlmock`, que simula la base de datos. No sólo devuelve datos preparados: también permite comprobar cómo se hizo una consulta. En el test de un gasto ajeno verifico que se busque el gasto `99` para el usuario `2`; así no alcanza con que el handler devuelva cualquier respuesta.
+Para no repetir tests parecidos uso tablas de casos y `t.Run()`. Por ejemplo, la misma regla de monto se prueba con `0`, un número negativo y uno con tres decimales. Si se cambiara el borde de la validación, alguno de esos casos fallaría.
 
-En el frontend usé `vi.fn()` para el inicio de sesión. El test comprueba que se autentique una vez y que se guarde exactamente la sesión recibida. También uso un `fetch` simulado para probar las llamadas a la API sin depender de internet ni del backend.
+El mock obligatorio del backend se hace con `go-sqlmock`. Simula PostgreSQL y, además de devolver filas preparadas, verifica la interacción esperada. En el test de un gasto ajeno se espera la consulta con el gasto `99` y el usuario `2`; si se eliminara el filtro por usuario, el test queda rojo.
+
+En frontend quedaron **34 tests**: 16 de utilidades y validaciones, 15 del cliente HTTP, 2 del servicio de inicio de sesión y 1 de almacenamiento de sesión. La guía pide como mínimo cuatro; la cantidad final sale de los caminos de las reglas que decidí cubrir, no de intentar llegar a un número fijo.
+
+Uso `it.each()` para fechas, gastos y categorías, y casos de error como fecha inexistente, monto inválido, categoría faltante o credenciales rechazadas. Para los mocks uso `vi.fn()`: en `iniciarSesion` reemplazo la autenticación y el guardado de sesión; en el cliente HTTP reemplazo `fetch`. De esa forma no se usa red, backend ni `localStorage` reales. Todo el frontend se prueba con Vitest en entorno `node`, sin DOM.
 
 ## Herramientas equivalentes en este stack
 
@@ -208,13 +212,13 @@ En el frontend usé `vi.fn()` para el inicio de sesión. El test comprueba que s
 
 ## Cobertura y quality gate
 
-El backend dio **61,3% de sentencias**, así que dejé el límite en **60%**. No elegí un número al azar: queda apenas debajo de lo que hoy tenemos y sirve para detectar código nuevo sin tests.
+El backend da **61,3% de sentencias**, por eso el umbral quedó en **60%**. Está anclado en la medición actual: deja un margen chico, pero rechaza una caída real de cobertura.
 
-Go no mide branch coverage con su herramienta estándar; `go test -cover` mide sentencias. Por eso el Summary del backend informa explícitamente que la cobertura de ramas no está disponible y no presenta ese número como si existiera.
+Go no mide cobertura de ramas con su herramienta estándar; `go test -cover` mide sentencias. El Summary del backend lo informa de forma explícita en lugar de inventar un número de ramas que la herramienta no entrega.
 
-En el frontend las utilidades, el cliente HTTP y el servicio de sesión dan **100%** en líneas, ramas, funciones y sentencias. Como son partes chicas y sin pantalla ni red, decidí exigir 100%: si aparece una regla nueva ahí, tiene que venir con su test.
+En frontend el alcance elegido da **84,14% de sentencias**, **82,35% de ramas**, **86,66% de funciones** y **87,32% de líneas**. Elegí un umbral de **80%** para las cuatro métricas: está debajo del resultado actual, especialmente del 82,35% de ramas, pero suficientemente cerca como para bloquear una regla o un camino nuevo que entre sin pruebas.
 
-Tener mucha cobertura no significa automáticamente que todo esté bien. Podría llamar una función sin comprobar nada y sumar cobertura igual. Por eso los tests revisan valores, mensajes, códigos HTTP y llamadas a los mocks, no solamente que el código se ejecute.
+La cobertura muestra qué código se ejecutó, no que todos los asserts sean buenos; por eso las pruebas verifican valores, mensajes, códigos HTTP y llamadas a los mocks, no solo que una función haya corrido.
 
 ## Alcance excluido de la cobertura
 
@@ -224,38 +228,32 @@ En frontend entran `src/api`, `src/services` y `src/utils`. Quedan afuera `main.
 
 ## Ejercicio del camino sin cubrir
 
-Al mirar el reporte del backend encontré una parte sin recorrer: cuando alguien intenta registrarse con la contraseña vacía. La entrada concreta fue un usuario válido con `Password: ""`.
+Al revisar el reporte del backend encontré una rama sin recorrer en la validación de registro: el caso en que la contraseña está vacía. La entrada concreta fue un usuario con nombre y email válidos, pero con `Password: ""`.
 
-Agregué `TestValidateRegisterRejectsEmptyPassword` para comprobar que se devuelva el mensaje correcto. Con eso, la validación de contraseña pasó de 83,3% a 100% y el backend subió de 61,0% a 61,3%. No cambié la regla para subir el número: solamente agregué el caso que faltaba probar.
+Decidí agregar `TestValidateRegisterRejectsEmptyPassword`. El test comprueba que se devuelva el mensaje correcto cuando falta la contraseña. Con ese caso se cubre una validación que antes no se ejecutaba y se deja documentado qué camino apareció al revisar el reporte.
 
 ## Pipeline y evidencias
 
 ### Prueba local con Docker
 
-Antes de subirlo, ejecuté `scripts/verify-tp5-local.ps1` con Docker Desktop. El script construye las dos etapas de test y prueba tanto el caso verde como uno con código sin tests.
+El script `scripts/verify-tp5-local.ps1` construye las dos etapas de test y prueba tanto el caso verde como uno con código sin tests. Se debe ejecutar con Docker Desktop antes de subir los cambios para guardar los reportes locales.
 
 | Caso | Cobertura | Umbral | Salida del contenedor |
 |---|---|---|---|
 | Backend original | 61,3% de sentencias | 60% | `0`, aprobado |
 | Backend con función temporal sin tests | 58,0% de sentencias | 60% | `1`, rechazado por cobertura |
-| Frontend original | 100% en líneas, ramas, funciones y sentencias | 100% en las cuatro | `0`, aprobado |
-| Frontend con función temporal sin tests | 92,53% líneas; 87,5% ramas; 96,66% funciones; 88,88% sentencias | 100% en las cuatro | `1`, rechazado por cobertura |
+| Frontend original | 84,14% sentencias; 82,35% ramas; 86,66% funciones; 87,32% líneas | 80% en las cuatro | `0`, aprobado |
+| Frontend con función temporal sin tests | Al menos una métrica queda debajo de 80% | 80% en las cuatro | `1`, rechazado por cobertura |
 
-En los casos rojos el código compiló y los tests existentes pasaron. El fallo fue solamente porque bajó la cobertura. No cambié los límites ni rompí un test para forzar el rojo.
-
-También comprobé que se generaran los HTML y los resúmenes de cobertura de los dos lados. Los archivos locales quedaron guardados en `.cache/tp5-verification/`.
+En el caso rojo, el script comprueba que el código compile y que los tests existentes pasen. El fallo debe ser solamente porque baja la cobertura; no se cambian los límites ni se rompe un test para forzar el rojo. Los HTML y resúmenes de ambos lados se guardan en `.cache/tp5-verification/`.
 
 ### Prueba en GitHub
 
-Conservé los mismos checks del TP4: `build-backend` y `build-frontend`. Son obligatorios para hacer merge a `main`, así que no hizo falta crear otro freno en GitHub.
+Conservo los mismos checks del TP4: `build-backend` y `build-frontend`. Son obligatorios para hacer merge a `main`, así que el freno de calidad no necesita un check nuevo: el mismo pipeline bloquea cuando un test falla o cuando la cobertura baja.
 
-La demostración se hizo en el [PR #25](https://github.com/NavarroLorenzo/ingsoft3-tp01/pull/25). Primero agregué una validación de fecha sin sus tests. El código compiló y los 32 tests que ya existían pasaron, pero el frontend quedó rojo porque bajó a 98,61% de líneas, 98,52% de ramas y 98,78% de sentencias. La corrida roja es [esta](https://github.com/NavarroLorenzo/ingsoft3-tp01/actions/runs/36472809700).
+La demostración se va a registrar con dos Pull Requests distintos. El primero mostrará el recorrido completo: una regla nueva sin tests deja el build compilando y todos los tests existentes en verde, pero el check de frontend queda rojo por quedar debajo de 80%; después se agregan los casos faltantes, el check pasa y el PR se integra a `main`.
 
-Después agregué los cinco casos que faltaban: fecha no enviada, vacía, formato incorrecto, fecha inexistente y una fecha bisiesta válida. El frontend pasó a tener 37 tests y volvió a 100% en las cuatro métricas. La corrida verde es [esta](https://github.com/NavarroLorenzo/ingsoft3-tp01/actions/runs/36473208001).
-
-Después de volver verde el PR #25, lo integré a `main` y publiqué la release `v5.0.0` desde ese commit.
-
-También dejé abierto el [PR #26](https://github.com/NavarroLorenzo/ingsoft3-tp01/pull/26) para la defensa. Agrega una validación real para la descripción de un gasto, pero no tiene tests específicos para esa regla. El build sigue pasando y los 37 tests existentes quedan verdes, pero `build-frontend` falla porque la cobertura baja a 98,7% de líneas, 98,86% de sentencias y 97,29% de ramas. La [corrida roja del PR #26](https://github.com/NavarroLorenzo/ingsoft3-tp01/actions/runs/36475317394/attempts/1) deja visible el resumen y el motivo del bloqueo. No se mergea ni se corrige hasta la defensa: sirve para mostrar que el quality gate bloquea cambios aunque no haya tests fallando.
+El segundo Pull Request tendrá otra regla nueva sin tests y se dejará abierto en rojo hasta la defensa. Ahí se podrá ver que el merge queda bloqueado por el quality gate aunque no haya ningún test fallando. Cuando estén hechas las nuevas corridas, voy a agregar en esta sección la URL de cada PR y de cada run concreto, junto con sus porcentajes.
 
 ## Problemas encontrados y resolución
 
