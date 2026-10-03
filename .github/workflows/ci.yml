@@ -52,9 +52,9 @@ jobs:
       - name: Publicar resumen de cobertura del backend
         if: ${{ !cancelled() }}
         run: |
-          if [ -f backend/coverage/summary.md ]; then
-            cat backend/coverage/summary.md >> "$GITHUB_STEP_SUMMARY"
-          fi
+          report=backend/coverage/summary.md
+          test -s "$report" || { echo "No se generó el resumen de cobertura del backend." >&2; exit 1; }
+          cat "$report" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Publicar reporte de cobertura del backend
         if: ${{ !cancelled() }}
@@ -62,7 +62,7 @@ jobs:
         with:
           name: coverage-backend
           path: backend/coverage
-          if-no-files-found: warn
+          if-no-files-found: error
 
   build-frontend:
     runs-on: ubuntu-latest
@@ -109,9 +109,9 @@ jobs:
       - name: Publicar resumen de cobertura del frontend
         if: ${{ !cancelled() }}
         run: |
-          if [ -f frontend/coverage/report/coverage-summary.json ]; then
-            node frontend/scripts/coverage-summary.cjs frontend/coverage/report/coverage-summary.json >> "$GITHUB_STEP_SUMMARY"
-          fi
+          report=frontend/coverage/report/coverage-summary.json
+          test -s "$report" || { echo "No se generó el resumen de cobertura del frontend." >&2; exit 1; }
+          node frontend/scripts/coverage-summary.cjs "$report" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Publicar reporte de cobertura del frontend
         if: ${{ !cancelled() }}
@@ -119,4 +119,4 @@ jobs:
         with:
           name: coverage-frontend
           path: frontend/coverage
-          if-no-files-found: warn
+          if-no-files-found: error
