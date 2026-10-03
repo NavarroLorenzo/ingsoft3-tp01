@@ -37,31 +37,36 @@ describe("cliente de API", () => {
   });
 
   it.each([
-    ["registra un usuario", () => register({ nombre: "Ana" }), "/api/auth/register", "POST", false],
-    ["inicia sesión", () => login({ email: "ana@example.com" }), "/api/auth/login", "POST", false],
+    ["registra un usuario", () => register({ nombre: "Ana" }), "/api/auth/register", "POST", false, { nombre: "Ana" }],
+    ["inicia sesión", () => login({ email: "ana@example.com" }), "/api/auth/login", "POST", false, { email: "ana@example.com" }],
     ["obtiene el usuario actual", () => obtenerUsuarioActual(), "/api/auth/me", undefined, true],
     ["obtiene gastos filtrados", () => obtenerGastos({ categoriaId: 3, desde: "", hasta: null, texto: "café" }), "/api/gastos?categoriaId=3&texto=caf%C3%A9", undefined, true],
-    ["crea un gasto", () => crearGasto({ monto: 100 }), "/api/gastos", "POST", true],
-    ["actualiza un gasto", () => actualizarGasto(7, { monto: 100 }), "/api/gastos/7", "PUT", true],
+    ["crea un gasto", () => crearGasto({ monto: 100 }), "/api/gastos", "POST", true, { monto: 100 }],
+    ["actualiza un gasto", () => actualizarGasto(7, { monto: 100 }), "/api/gastos/7", "PUT", true, { monto: 100 }],
     ["elimina un gasto", () => eliminarGasto(7), "/api/gastos/7", "DELETE", true],
     ["obtiene categorías", () => obtenerCategorias(), "/api/categorias", undefined, true],
-    ["crea una categoría", () => crearCategoria({ nombre: "Ocio" }), "/api/categorias", "POST", true],
-    ["actualiza una categoría", () => actualizarCategoria(4, { nombre: "Salud" }), "/api/categorias/4", "PUT", true],
+    ["crea una categoría", () => crearCategoria({ nombre: "Ocio" }), "/api/categorias", "POST", true, { nombre: "Ocio" }],
+    ["actualiza una categoría", () => actualizarCategoria(4, { nombre: "Salud" }), "/api/categorias/4", "PUT", true, { nombre: "Salud" }],
     ["elimina una categoría", () => eliminarCategoria(4), "/api/categorias/4", "DELETE", true],
     ["obtiene el resumen filtrado", () => obtenerResumen({ desde: "2026-01-01", hasta: "2026-01-31" }), "/api/resumen?desde=2026-01-01&hasta=2026-01-31", undefined, true]
-  ])("%s con el contrato HTTP esperado", async (_nombre, llamada, path, method, requiereAuth) => {
+  ])("%s con el contrato HTTP esperado", async (_nombre, llamada, ruta, metodo, requiereAuth, cuerpoEsperado) => {
     guardarSesion({ token: "jwt-demo", user: { id: 1 } });
-    fetch.mockResolvedValue(respuesta(method === "DELETE" ? null : { ok: true }, method === "DELETE" ? 204 : 200));
+    fetch.mockResolvedValue(respuesta(metodo === "DELETE" ? null : { ok: true }, metodo === "DELETE" ? 204 : 200));
 
     await llamada();
 
     expect(fetch).toHaveBeenCalledTimes(1);
-    const [url, options] = fetch.mock.calls[0];
-    expect(url).toBe(path);
-    expect(options.headers).toMatchObject({ "Content-Type": "application/json" });
-    if (requiereAuth) expect(options.headers.Authorization).toBe("Bearer jwt-demo");
-    else expect(options.headers.Authorization).toBeUndefined();
-    if (method) expect(options.method).toBe(method);
+    const [url, opciones] = fetch.mock.calls[0];
+    expect(url).toBe(ruta);
+    expect(opciones.headers).toMatchObject({ "Content-Type": "application/json" });
+    if (requiereAuth) expect(opciones.headers.Authorization).toBe("Bearer jwt-demo");
+    else expect(opciones.headers.Authorization).toBeUndefined();
+    expect(opciones.method ?? "GET").toBe(metodo ?? "GET");
+    if (cuerpoEsperado !== undefined) {
+      expect(JSON.parse(opciones.body)).toEqual(cuerpoEsperado);
+    } else {
+      expect(opciones.body).toBeUndefined();
+    }
   });
 
   it("ante un 401 limpia la sesión, avisa a la aplicación y propaga el error", async () => {

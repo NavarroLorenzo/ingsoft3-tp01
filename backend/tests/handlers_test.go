@@ -27,7 +27,7 @@ func testDB(t *testing.T) (*gorm.DB, sqlmock.Sqlmock) {
 	return db, mock
 }
 
-func TestHealthcheck(t *testing.T) {
+func TestSaludConfirmaConexionConBaseDeDatos(t *testing.T) {
 	db, mock := testDB(t)
 	mock.ExpectPing()
 	router := handlers.NewRouter(&handlers.Handler{DB: db, JWTSecret: "test-secret"})
@@ -40,14 +40,14 @@ func TestHealthcheck(t *testing.T) {
 		t.Fatalf("status = %d, body = %s", response.Code, response.Body.String())
 	}
 	if response.Body.String() != "{\"status\":\"healthy\"}" {
-		t.Fatalf("unexpected body: %s", response.Body.String())
+		t.Fatalf("cuerpo de respuesta inesperado: %s", response.Body.String())
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Fatal(err)
 	}
 }
 
-func TestGetCategoriaWithInvalidID(t *testing.T) {
+func TestConsultaCategoriaRechazaIdentificadorInvalido(t *testing.T) {
 	router := handlers.NewRouter(&handlers.Handler{JWTSecret: "test-secret"})
 	token, err := auth.GenerateToken(models.Usuario{ID: 1, Email: "ana@example.com"}, "test-secret")
 	if err != nil {

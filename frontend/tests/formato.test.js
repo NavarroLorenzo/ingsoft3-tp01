@@ -8,7 +8,7 @@ const gastoValido = {
   categoriaId: 1
 };
 
-describe("formato", () => {
+describe("validaciones de gastos, fechas, categorías y registro", () => {
   it.each([
     ["fecha no provista", undefined, "obligatoria"],
     ["fecha vacía", "", "obligatoria"],
@@ -32,7 +32,7 @@ describe("formato", () => {
     expect(validarGasto({ ...gastoValido, ...cambios })).toContain(mensaje);
   });
 
-  it("acepta un gasto válido y quita los espacios de la descripción", () => {
+  it("acepta un gasto válido con espacios alrededor de la descripción", () => {
     expect(validarGasto({ ...gastoValido, descripcion: "  Supermercado  " })).toBeNull();
   });
 

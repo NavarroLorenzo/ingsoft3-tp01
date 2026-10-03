@@ -36,7 +36,7 @@ func authenticatedJSONRequest(t *testing.T, method, target, body string, userID 
 	return request
 }
 
-func TestValidateGastoRejectsInvalidAmounts(t *testing.T) {
+func TestGastoRechazaMontosInvalidos(t *testing.T) {
 	tests := []struct {
 		name   string
 		amount float64
@@ -60,7 +60,7 @@ func TestValidateGastoRejectsInvalidAmounts(t *testing.T) {
 	}
 }
 
-func TestValidateRegisterRejectsEmptyPassword(t *testing.T) {
+func TestRegistroRechazaContrasenaVacia(t *testing.T) {
 	input := validation.RegisterInput{
 		Nombre:   "Ana",
 		Email:    "ana@example.com",
@@ -74,7 +74,7 @@ func TestValidateRegisterRejectsEmptyPassword(t *testing.T) {
 	}
 }
 
-func TestValidateGastoAcceptsBoundaryValues(t *testing.T) {
+func TestGastoAceptaValoresLimite(t *testing.T) {
 	input := validInput()
 	input.Descripcion = "abc"
 	input.Monto = 0.01
@@ -90,7 +90,7 @@ func TestValidateGastoAcceptsBoundaryValues(t *testing.T) {
 	}
 }
 
-func TestValidateGastoRejectsInvalidDates(t *testing.T) {
+func TestGastoRechazaFechasInvalidas(t *testing.T) {
 	for _, value := range []string{"", "12-08-2026", "2026-02-30"} {
 		t.Run(value, func(t *testing.T) {
 			input := validInput()
@@ -105,7 +105,7 @@ func TestValidateGastoRejectsInvalidDates(t *testing.T) {
 	}
 }
 
-func TestValidateCategoriaTrimsAndEnforcesLength(t *testing.T) {
+func TestCategoriaQuitaEspaciosYValidaLongitud(t *testing.T) {
 	valid := validation.CategoriaInput{Nombre: "  Salud  "}
 	if err := validation.ValidateCategoria(&valid); err != nil {
 		t.Fatalf("una categoría válida fue rechazada: %v", err)
@@ -122,7 +122,7 @@ func TestValidateCategoriaTrimsAndEnforcesLength(t *testing.T) {
 	}
 }
 
-func TestParseDateAcceptsOnlyISOCalendarDates(t *testing.T) {
+func TestFechaSoloAceptaFechasISOExistentes(t *testing.T) {
 	date, err := validation.ParseDate("2028-02-29")
 	if err != nil || date.Format("2006-01-02") != "2028-02-29" {
 		t.Fatalf("fecha válida: date=%v err=%v", date, err)
@@ -133,7 +133,7 @@ func TestParseDateAcceptsOnlyISOCalendarDates(t *testing.T) {
 	}
 }
 
-func TestHealthWithoutDatabaseIsUnavailable(t *testing.T) {
+func TestSaludSinBaseDeDatosDevuelveNoDisponible(t *testing.T) {
 	router := handlers.NewRouter(&handlers.Handler{JWTSecret: authSecret})
 	response := httptest.NewRecorder()
 
@@ -144,7 +144,7 @@ func TestHealthWithoutDatabaseIsUnavailable(t *testing.T) {
 	}
 }
 
-func TestGetCategoriasReturnsAlphabeticalData(t *testing.T) {
+func TestCategoriasSeConsultanEnOrdenAlfabetico(t *testing.T) {
 	db, mock := testDB(t)
 	router := handlers.NewRouter(&handlers.Handler{DB: db, JWTSecret: authSecret})
 	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "categorias" ORDER BY nombre ASC`)).
@@ -161,7 +161,7 @@ func TestGetCategoriasReturnsAlphabeticalData(t *testing.T) {
 	}
 }
 
-func TestCreateCategoriaRejectsAnExistingName(t *testing.T) {
+func TestCrearCategoriaRechazaNombreExistente(t *testing.T) {
 	db, mock := testDB(t)
 	router := handlers.NewRouter(&handlers.Handler{DB: db, JWTSecret: authSecret})
 	mock.ExpectQuery(regexp.QuoteMeta(`SELECT count(*) FROM "categorias" WHERE LOWER(nombre) = LOWER($1)`)).
@@ -181,7 +181,7 @@ func TestCreateCategoriaRejectsAnExistingName(t *testing.T) {
 	}
 }
 
-func TestUpdateCategoriaHidesAnUnknownCategory(t *testing.T) {
+func TestActualizarCategoriaInexistenteDevuelveNoEncontrado(t *testing.T) {
 	db, mock := testDB(t)
 	router := handlers.NewRouter(&handlers.Handler{DB: db, JWTSecret: authSecret})
 	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "categorias" WHERE "categorias"."id" = $1 ORDER BY "categorias"."id" LIMIT $2`)).
@@ -199,7 +199,7 @@ func TestUpdateCategoriaHidesAnUnknownCategory(t *testing.T) {
 	}
 }
 
-func TestMeReturnsTheAuthenticatedUser(t *testing.T) {
+func TestPerfilDevuelveUsuarioAutenticado(t *testing.T) {
 	db, mock := testDB(t)
 	router := handlers.NewRouter(&handlers.Handler{DB: db, JWTSecret: authSecret})
 	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "usuarios" WHERE "usuarios"."id" = $1 ORDER BY "usuarios"."id" LIMIT $2`)).
@@ -217,7 +217,7 @@ func TestMeReturnsTheAuthenticatedUser(t *testing.T) {
 	}
 }
 
-func TestResumenRejectsAnInvalidDateFilter(t *testing.T) {
+func TestResumenRechazaFiltroDeFechaInvalido(t *testing.T) {
 	db, mock := testDB(t)
 	router := handlers.NewRouter(&handlers.Handler{DB: db, JWTSecret: authSecret})
 
@@ -232,7 +232,7 @@ func TestResumenRejectsAnInvalidDateFilter(t *testing.T) {
 	}
 }
 
-func TestGetGastoHidesAnotherUsersExpense(t *testing.T) {
+func TestConsultarGastoOcultaElDeOtroUsuario(t *testing.T) {
 	db, mock := testDB(t)
 	router := handlers.NewRouter(&handlers.Handler{DB: db, JWTSecret: authSecret})
 	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "gastos" WHERE id = $1 AND usuario_id = $2 ORDER BY "gastos"."id" LIMIT $3`)).
@@ -250,7 +250,7 @@ func TestGetGastoHidesAnotherUsersExpense(t *testing.T) {
 	}
 }
 
-func TestGetGastosRejectsAnInvalidCategoryFilter(t *testing.T) {
+func TestListadoGastosRechazaFiltroDeCategoriaInvalido(t *testing.T) {
 	db, mock := testDB(t)
 	router := handlers.NewRouter(&handlers.Handler{DB: db, JWTSecret: authSecret})
 
@@ -265,7 +265,7 @@ func TestGetGastosRejectsAnInvalidCategoryFilter(t *testing.T) {
 	}
 }
 
-func TestGetGastosRejectsAnInvalidDateFilter(t *testing.T) {
+func TestListadoGastosRechazaFiltroDeFechaInvalido(t *testing.T) {
 	db, mock := testDB(t)
 	router := handlers.NewRouter(&handlers.Handler{DB: db, JWTSecret: authSecret})
 
@@ -280,7 +280,7 @@ func TestGetGastosRejectsAnInvalidDateFilter(t *testing.T) {
 	}
 }
 
-func TestCreateGastoRejectsAnUnknownCategory(t *testing.T) {
+func TestCrearGastoRechazaCategoriaInexistente(t *testing.T) {
 	db, mock := testDB(t)
 	router := handlers.NewRouter(&handlers.Handler{DB: db, JWTSecret: authSecret})
 	mock.ExpectQuery(regexp.QuoteMeta(`SELECT count(*) FROM "categorias" WHERE id = $1`)).
@@ -298,7 +298,7 @@ func TestCreateGastoRejectsAnUnknownCategory(t *testing.T) {
 	}
 }
 
-func TestDeleteCategoriaRejectsWhenItHasExpenses(t *testing.T) {
+func TestEliminarCategoriaRechazaSiTieneGastos(t *testing.T) {
 	db, mock := testDB(t)
 	router := handlers.NewRouter(&handlers.Handler{DB: db, JWTSecret: authSecret})
 	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "categorias" WHERE "categorias"."id" = $1 ORDER BY "categorias"."id" LIMIT $2`)).
@@ -319,7 +319,7 @@ func TestDeleteCategoriaRejectsWhenItHasExpenses(t *testing.T) {
 	}
 }
 
-func TestDeleteCategoriaWithoutExpensesDeletesIt(t *testing.T) {
+func TestEliminarCategoriaSinGastosPermiteBorrado(t *testing.T) {
 	db, mock := testDB(t)
 	router := handlers.NewRouter(&handlers.Handler{DB: db, JWTSecret: authSecret})
 	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "categorias" WHERE "categorias"."id" = $1 ORDER BY "categorias"."id" LIMIT $2`)).
@@ -345,7 +345,7 @@ func TestDeleteCategoriaWithoutExpensesDeletesIt(t *testing.T) {
 	}
 }
 
-func TestGastoJSONUsesDateOnlyFormat(t *testing.T) {
+func TestGastoJSONDevuelveFechaSinHora(t *testing.T) {
 	gasto := models.Gasto{
 		ID:          3,
 		Descripcion: "Supermercado",
