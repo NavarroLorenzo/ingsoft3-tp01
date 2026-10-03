@@ -190,15 +190,19 @@ En frontend las reglas que importan se mantienen en utilidades y servicios, sin 
 
 ## Suite, parametrización y mocks
 
-En backend quedaron **19 funciones de test** principales, además de los casos que se expanden dentro de las tablas. Superan el mínimo de ocho, pero no son variaciones del mismo caso: cubren validaciones, autenticación, categorías, gastos, resumen, healthcheck y el formato JSON de una fecha. Todos siguen la idea de preparar datos, ejecutar la regla o el handler y comprobar un resultado concreto.
+En backend quedaron **35 funciones de test en total**, de las cuales **19 están en `tp5_quality_test.go`**, además de los casos que se prueban dentro de las tablas. Superan el mínimo de ocho porque cubren validaciones, autenticación, categorías, gastos, resumen, healthcheck y el formato JSON de una fecha. Todos siguen la idea de preparar datos, ejecutar la regla o el handler y comprobar un resultado concreto.
+
+Separé algunos tests que antes mezclaban registro, inicio de sesión y acceso a gastos. Por eso aumentó la cantidad de funciones, aunque esos casos ya se probaban: ahora, si algo falla, es más fácil ver qué comportamiento se rompió. También dejé los nombres de las pruebas en español para entender mejor qué comprueba cada una.
 
 Para no repetir tests parecidos uso tablas de casos y `t.Run()`. Por ejemplo, la misma regla de monto se prueba con `0`, un número negativo y uno con tres decimales. Si se cambiara el borde de la validación, alguno de esos casos fallaría.
 
-El mock obligatorio del backend se hace con `go-sqlmock`. Simula PostgreSQL y, además de devolver filas preparadas, verifica la interacción esperada. En el test de un gasto ajeno se espera la consulta con el gasto `99` y el usuario `2`; si se eliminara el filtro por usuario, el test queda rojo.
+El mock obligatorio del backend se hace con `go-sqlmock`. Simula PostgreSQL y, además de devolver filas preparadas, verifica la interacción esperada. En las pruebas de consulta, edición y borrado de un gasto ajeno se espera que se usen el gasto `99` y el usuario `2`; si se eliminara el filtro por usuario, el test queda rojo. En el resumen también se comprueba que las consultas reciban el usuario de la sesión.
 
 En frontend quedaron **34 tests**: 16 de utilidades y validaciones, 15 del cliente HTTP, 2 del servicio de inicio de sesión y 1 de almacenamiento de sesión. La guía pide como mínimo cuatro; la cantidad final sale de los caminos de las reglas que decidí cubrir, no de intentar llegar a un número fijo.
 
 Uso `it.each()` para fechas, gastos y categorías, y casos de error como fecha inexistente, monto inválido, categoría faltante o credenciales rechazadas. Para los mocks uso `vi.fn()`: en `iniciarSesion` reemplazo la autenticación y el guardado de sesión; en el cliente HTTP reemplazo `fetch`. De esa forma no se usa red, backend ni `localStorage` reales. Todo el frontend se prueba con Vitest en entorno `node`, sin DOM.
+
+En las pruebas del cliente HTTP compruebo la dirección, el método, la autorización y los datos enviados. Por ejemplo, al crear un gasto con monto `100`, el test verifica que ese mismo monto llegue en el cuerpo JSON de la petición. Así también se detectaría si la llamada llega a la dirección correcta pero manda datos equivocados.
 
 ## Herramientas equivalentes en este stack
 
@@ -230,7 +234,7 @@ En frontend entran `src/api`, `src/services` y `src/utils`. Quedan afuera `main.
 
 Al revisar el reporte del backend encontré una rama sin recorrer en la validación de registro: el caso en que la contraseña está vacía. La entrada concreta fue un usuario con nombre y email válidos, pero con `Password: ""`.
 
-Decidí agregar `TestValidateRegisterRejectsEmptyPassword`. El test comprueba que se devuelva el mensaje correcto cuando falta la contraseña. Con ese caso se cubre una validación que antes no se ejecutaba y se deja documentado qué camino apareció al revisar el reporte.
+Decidí agregar `TestRegistroRechazaContrasenaVacia`. El test comprueba que se devuelva el mensaje correcto cuando falta la contraseña. Con ese caso se cubre una validación que antes no se ejecutaba y se deja documentado qué camino apareció al revisar el reporte.
 
 ## Pipeline y evidencias
 
