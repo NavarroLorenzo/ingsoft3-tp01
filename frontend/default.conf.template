@@ -7,10 +7,12 @@ server {
         try_files $uri $uri/ /index.html;
     }
 
-    resolver 127.0.0.11 valid=10s ipv6=off;
-    set $backend_api http://backend:8080;
+    # La URL del backend y el DNS se reciben del entorno al arrancar.
+    resolver ${DNS_RESOLVER} valid=10s ipv6=off;
+    set $backend_api ${BACKEND_URL};
 
     location /api/ {
         proxy_pass $backend_api;
+        proxy_ssl_server_name on;
     }
 }
