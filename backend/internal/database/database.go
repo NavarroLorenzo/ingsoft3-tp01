@@ -3,6 +3,8 @@ package database
 import (
 	"errors"
 	"fmt"
+	"net"
+	"net/url"
 	"os"
 	"strings"
 
@@ -18,19 +20,38 @@ func LoadEnvironment() {
 }
 
 func Connect() (*gorm.DB, error) {
+	dsn, err := connectionString()
+	if err != nil {
+		return nil, err
+	}
+	return gorm.Open(postgres.Open(dsn), &gorm.Config{})
+}
+
+func connectionString() (string, error) {
 	values := map[string]string{}
 	for _, key := range []string{"DB_HOST", "DB_PORT", "DB_USER", "DB_PASSWORD", "DB_NAME"} {
 		values[key] = os.Getenv(key)
 		if values[key] == "" {
-			return nil, fmt.Errorf("falta la variable de entorno %s", key)
+			return "", fmt.Errorf("falta la variable de entorno %s", key)
 		}
 	}
 
-	dsn := fmt.Sprintf(
-		"host=%s user=%s password=%s dbname=%s port=%s sslmode=disable TimeZone=UTC",
-		values["DB_HOST"], values["DB_USER"], values["DB_PASSWORD"], values["DB_NAME"], values["DB_PORT"],
-	)
-	return gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	sslMode := os.Getenv("DB_SSLMODE")
+	if sslMode == "" {
+		sslMode = "disable"
+	}
+
+	connection := url.URL{
+		Scheme: "postgres",
+		User:   url.UserPassword(values["DB_USER"], values["DB_PASSWORD"]),
+		Host:   net.JoinHostPort(values["DB_HOST"], values["DB_PORT"]),
+		Path:   "/" + values["DB_NAME"],
+	}
+	query := connection.Query()
+	query.Set("sslmode", sslMode)
+	query.Set("TimeZone", "UTC")
+	connection.RawQuery = query.Encode()
+	return connection.String(), nil
 }
 
 func MigrateAndSeed(db *gorm.DB) error {
