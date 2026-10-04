@@ -23,11 +23,15 @@ ENTRYPOINT ["npm", "run", "test:coverage"]
 # ---- Etapa 3: runtime (servidor web liviano, sin Node.js) ----
 FROM nginx:1.29-alpine
 
-# Configura Nginx para servir la aplicación y sus rutas.
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Configura Nginx al arrancar con la URL del backend de cada entorno.
+COPY default.conf.template /etc/nginx/templates/default.conf.template
 
 # Copia únicamente los archivos estáticos generados en la etapa de build.
 COPY --from=build /app/dist /usr/share/nginx/html
+
+# Docker Compose usa estos valores; Render los reemplaza para QA y PROD.
+ENV BACKEND_URL=http://backend:8080 \
+    DNS_RESOLVER=127.0.0.11
 
 # Documenta el puerto HTTP expuesto por Nginx.
 EXPOSE 80
