@@ -1,3 +1,11 @@
+# Enlaces de este TP (TP6)
+
+- Paquetes públicos: [backend](https://github.com/users/NavarroLorenzo/packages/container/package/ingsoft3-tp01-backend) y [frontend](https://github.com/users/NavarroLorenzo/packages/container/package/ingsoft3-tp01-frontend). Las imágenes del merge aprobado llevan el tag `sha-1cb00ed371359b91d4febea39cb062e22443b98a`.
+- Cadena de publicación: [job de backend en el PR #32](https://github.com/NavarroLorenzo/ingsoft3-tp01/actions/runs/37169974376/job/111340744338), con los tests verdes y “Entrar al registry” salteado; [job de backend en `main`](https://github.com/NavarroLorenzo/ingsoft3-tp01/actions/runs/37232036592/job/111523639681), con la publicación después de los tests y la cobertura.
+- QA: [frontend](https://ingsoft3-front-qa.onrender.com/) y [API](https://ingsoft3-api-qa.onrender.com/health).
+- PROD: [frontend](https://ingsoft3-front-prod.onrender.com/) y [API](https://ingsoft3-api-prod.onrender.com/health).
+- [Release v6.0.0 con notas](https://github.com/NavarroLorenzo/ingsoft3-tp01/releases/tag/v6.0.0).
+
 # Decisiones — TP1
 
 ## 1. Conflicto de merge
@@ -270,3 +278,47 @@ En el frontend apareció un problema al generar el reporte dentro de Docker: Vit
 ## Uso de IA
 
 Usé ChatGPT/Codex para revisar el código, pensar los casos de prueba y preparar la configuración. Después fui ejecutando los tests, revisando los mensajes y mirando las corridas de GitHub. En la defensa puedo explicar qué comprueba cada test y por qué el PR quedó bloqueado aunque los tests pasaran.
+
+# Decisiones — TP6
+
+## Publicación de imágenes y tipo de entrega
+
+Seguí usando GHCR para las imágenes del backend y del frontend. Cada job construye su etapa de tests, ejecuta las pruebas y controla la cobertura antes de publicar. En un Pull Request se construye la imagen pero no se hace login ni push al registry. Cuando el cambio entra a `main` y el job termina en verde, se publica con un tag `sha-<commit>`. Así puedo relacionar cada imagen con el código que la produjo. Si publicara antes de verificar, encontrar una imagen en GHCR ya no me diría que pasó los tests y el quality gate.
+
+Este flujo es **Continuous Delivery**: el cambio pasa por CI y llega automáticamente a QA, pero para entrar a PROD necesita una aprobación humana. No es Continuous Deployment hasta producción, porque ese último paso no ocurre solo.
+
+## QA y PROD
+
+Monté cuatro Web Services Docker en Render: API y frontend para QA, y API y frontend para PROD. Los cuatro tienen **Auto-Deploy en Off**. El pipeline dispara sus deploy hooks; si Render se actualizara solo al recibir un push, el gate de GitHub no controlaría realmente la llegada a producción.
+
+Cada backend usa una base PostgreSQL distinta en Neon: `app_qa` o `app_prod`. Elegí Neon porque la defensa es dentro de unos dos meses y la base gratuita de Render se elimina a los 30 días. La conexión usa TLS con `DB_SSLMODE=require`. Para verificar que las bases no se mezclaran, agregué la categoría “SOLO PROD TP6” en `app_prod`: apareció en la app de PROD y no en la de QA.
+
+La URL de la API no está fija dentro de la imagen del frontend. Nginx lee `BACKEND_URL` y `DNS_RESOLVER` al iniciar el contenedor; en Render cada frontend recibe la URL de su API y en Compose se usan valores por defecto para la red local. El código de React y la plantilla de Nginx son los mismos para los dos entornos. La configuración que cambia es la dirección del backend; las rutas `/api` y la lógica de la aplicación siguen dentro de la imagen.
+
+En GitHub creé los environments `qa` y `production`. Los hooks de QA están como secrets de `qa` y los de PROD como secrets de `production`, para que cada job use solamente los servicios de su entorno. Las contraseñas de Neon y `JWT_SECRET` están cargados en Render, fuera de las imágenes y del repositorio.
+
+## Promoción y aprobación
+
+El workflow usa `needs` para que `deploy-qa` espere a los dos jobs de build. Además, ese job tiene `if` para correr solo en `main`: un PR verifica, pero no despliega. Si QA responde, `deploy-prod` puede llegar al environment `production`, donde espera la aprobación requerida. Ahí se usan los hooks de PROD. En los hooks paso `&ref=$GITHUB_SHA`, así Render reconstruye el commit de la corrida y no una punta de `main` que pudo cambiar mientras se esperaba la aprobación.
+
+Antes de aprobar miro que backend y frontend hayan pasado tests y cobertura, que el deploy y el smoke de QA estén verdes, qué commit se está promoviendo y qué cambió. Probé también el rechazo: en la [corrida del PR #35 ya integrado](https://github.com/NavarroLorenzo/ingsoft3-tp01/actions/runs/37231181648) dejé un motivo concreto por el primer intento del smoke de QA que agotó sus 10 segundos. QA terminó bien tras reintentar, pero ese commit no pasó a PROD. Después aprobé la [corrida del PR #36 integrado](https://github.com/NavarroLorenzo/ingsoft3-tp01/actions/runs/37232036592): el texto nuevo apareció primero en QA y recién después de la aprobación en PROD.
+
+El smoke prueba que `/health` puede consultar PostgreSQL, que carga el frontend y que el proxy `/api/categorias` llega al backend: sin sesión devuelve `401`, que en este caso es lo esperado. Reintenta porque los servicios gratuitos pueden estar dormidos y tardar en responder. **No prueba todavía qué commit está sirviendo**: Render acepta el hook antes de terminar el build y la URL puede responder con la versión anterior. Para cerrar esa diferencia habría que exponer la versión en la app y comparar el SHA recibido con el de la corrida.
+
+Render vuelve a construir desde el repositorio. Aunque GHCR guarda las imágenes que pasaron CI, no puedo afirmar que PROD esté ejecutando exactamente esos mismos bytes o digest. En este TP el `ref` asegura el commit elegido para reconstruir; promover la misma imagen ya construida sería una garantía más fuerte.
+
+## Free tier, release y rollback
+
+En el plan gratuito de Render los servicios se duermen por inactividad. Eso puede agregar unos 50 segundos o más al primer pedido, así que los smokes tienen reintentos y tiempo límite. Tampoco conviene mantener cuatro servicios despiertos con pings constantes: las 750 horas gratis son del workspace completo. Además, cada deploy reconstruye en Render y consume minutos de build. Para la defensa tengo que comprobar que las cuatro URLs sigan disponibles y dejar tiempo para despertarlas.
+
+Publiqué la [release `v6.0.0` con notas](https://github.com/NavarroLorenzo/ingsoft3-tp01/releases/tag/v6.0.0). El tag apunta al commit que efectivamente se desplegó en PROD, `1cb00ed371359b91d4febea39cb062e22443b98a`, no simplemente a lo último de `main`.
+
+Hoy Render despliega un servicio por entorno, así que no tengo un blue-green real. Para una producción con usuarios elegiría **blue-green**: levantaría la nueva versión aparte, probaría su salud y cambiaría el tráfico recién cuando esté lista. Cuesta casi el doble de infraestructura, pero permite volver rápido a la versión anterior si falla. Antes de usarlo en serio me faltarían métricas de errores y latencia por versión, además de comprobar que las migraciones de la base sean compatibles con las dos versiones durante el cambio.
+
+Mi rollback actual es más simple: identifico el último commit bueno en Deployments o en la release, llamo los hooks de los dos servicios de PROD con `&ref=<sha-bueno>` y espero a que **ambos** figuren `Live` con ese commit en Render → Deploys. Después pruebo la app. No usaría `v5.0.0` para este ejercicio porque es anterior a la configuración de Nginx que necesita Render. El tiempo de rollback todavía falta medirlo con un cambio posterior a `v6.0.0`: lo voy a contar desde la llamada a los hooks hasta que ambos deploys queden `Live`, y dejaré ese número junto con los horarios de Render. Volver el código atrás no revierte los datos ni una migración de base ya aplicada.
+
+## Problemas encontrados y uso de IA
+
+Al principio Docker Desktop no estaba listo para ejecutar las comprobaciones locales. También apareció un script `.sh` con finales de línea de Windows que fallaba dentro de Linux; lo corregí con `.gitattributes`. GHCR rechazó la primera publicación por falta de permiso `write_package`, que resolví dando acceso Write de Actions a ambos paquetes. En Render, el registro quedaba cargando porque Nginx intentaba buscar `backend:8080`, un nombre que solo existía en Compose. Lo cambié por una plantilla que usa `BACKEND_URL` y volví a comprobar el registro desde la app desplegada.
+
+Usé ChatGPT y Codex para entender la guía, revisar el workflow, preparar cambios de configuración y redactar esta sección. La comprobación no quedó en lo que sugirió la IA: ejecuté builds y tests, revisé los jobs y el rechazo/aprobación en GitHub, probé las URLs y usé las aplicaciones para comprobar el aislamiento de las bases. Para el rollback falta hacer la medición real y agregar el resultado; no lo doy por verificado todavía.
