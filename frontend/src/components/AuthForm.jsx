@@ -45,5 +45,5 @@ export function RegisterPage({ onRegister }) {
 }
 
 function AuthCard({ title, onSubmit, error, loading, button, children }) {
-  return <main className="auth-page"><section className="auth-card"><Brand className="auth-brand" /><p className="eyebrow">Control simple de finanzas</p><h1>{title}</h1><form className="auth-form" onSubmit={onSubmit}>{children}{error && <p className="form-error" role="alert">{error}</p>}<button className="primary-button" disabled={loading} type="submit">{loading ? "Procesando..." : button}</button></form></section></main>;
+  return <main className="auth-page"><section className="auth-card"><Brand className="auth-brand" /><p className="eyebrow">Tus gastos, más claros</p><h1>{title}</h1><form className="auth-form" onSubmit={onSubmit}>{children}{error && <p className="form-error" role="alert">{error}</p>}<button className="primary-button" disabled={loading} type="submit">{loading ? "Procesando..." : button}</button></form></section></main>;
 }

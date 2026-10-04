@@ -5,7 +5,7 @@ export default function Header({ user, onLogout }) {
     <header className="site-header">
       <div className="header-brand">
         <Brand />
-        <p className="eyebrow">Control simple de finanzas</p>
+        <p className="eyebrow">Tus gastos, más claros</p>
         <h1>Tu gestor de gastos personales</h1>
       </div>
       <div className="user-actions">
