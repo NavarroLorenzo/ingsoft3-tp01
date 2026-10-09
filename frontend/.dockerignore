@@ -2,6 +2,11 @@ node_modules/
 dist/
 .git/
 .env
+*.local
+e2e/
+playwright.config.js
+playwright-report/
+test-results/
 *.log
 coverage/
 .npm-cache/

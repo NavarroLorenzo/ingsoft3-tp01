@@ -11,8 +11,16 @@ server {
     resolver ${DNS_RESOLVER} valid=10s ipv6=off;
     set $backend_api ${BACKEND_URL};
 
+    # La comprobación del frontend debe llegar al backend, no al index.html de la SPA.
+    location = /health {
+        proxy_pass $backend_api;
+        proxy_ssl_server_name on;
+        proxy_read_timeout 120s;
+    }
+
     location /api/ {
         proxy_pass $backend_api;
         proxy_ssl_server_name on;
+        proxy_read_timeout 120s;
     }
 }

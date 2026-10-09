@@ -8,6 +8,8 @@ coverage/
 backend/coverage
 .cache/
 .npm-cache/
+playwright-report/
+test-results/
 
 # secretos: NUNCA se versionan
 .env

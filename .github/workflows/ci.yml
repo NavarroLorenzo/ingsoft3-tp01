@@ -201,9 +201,90 @@ jobs:
           echo "QA no respondió correctamente a tiempo"
           exit 1
 
-  deploy-prod:
+  integracion:
     runs-on: ubuntu-latest
     needs: deploy-qa
+    environment: qa
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Bajar el código al runner
+        uses: actions/checkout@v6
+
+      - name: Preparar Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Instalar dependencias sin navegador
+        run: npm ci
+        working-directory: ./frontend
+
+      - name: Integración contra la API y PostgreSQL de QA
+        env:
+          API_BASE_URL: https://ingsoft3-api-qa.onrender.com
+          E2E_EMAIL: ${{ secrets.E2E_EMAIL }}
+          E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
+        run: npm run test:integracion
+        working-directory: ./frontend
+
+      - name: Publicar reporte de integración
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v6
+        with:
+          name: playwright-report-integracion
+          path: frontend/playwright-report
+          retention-days: 7
+          if-no-files-found: error
+
+  e2e:
+    runs-on: ubuntu-latest
+    needs: integracion
+    environment: qa
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - name: Bajar el código al runner
+        uses: actions/checkout@v6
+
+      - name: Preparar Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Instalar dependencias y Chromium
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+        working-directory: ./frontend
+
+      - name: E2E contra el frontend de QA
+        env:
+          API_BASE_URL: https://ingsoft3-api-qa.onrender.com
+          E2E_BASE_URL: https://ingsoft3-front-qa.onrender.com
+          E2E_EMAIL: ${{ secrets.E2E_EMAIL }}
+          E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
+        run: npm run test:e2e
+        working-directory: ./frontend
+
+      - name: Publicar reporte E2E
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v6
+        with:
+          name: playwright-report-e2e
+          path: frontend/playwright-report
+          retention-days: 7
+          if-no-files-found: error
+
+  deploy-prod:
+    runs-on: ubuntu-latest
+    needs: e2e
     environment: production
     concurrency:
       group: deploy-prod
