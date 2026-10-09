@@ -22,12 +22,12 @@ jobs:
       - name: Bajar el código al runner
         uses: actions/checkout@v6
 
-      - name: Configurar mirror de Docker Hub
-        run: bash .github/scripts/configure-docker-mirror.sh
-
       - name: Preparar Docker Buildx
         uses: docker/setup-buildx-action@v4
         with:
+          # El builder se descarga antes de aplicar su configuración de mirrors.
+          driver-opts: |
+            image=mirror.gcr.io/moby/buildkit:buildx-stable-1
           # Prioriza la caché pública de Google para las imágenes base de Docker Hub.
           buildkitd-config-inline: |
             [registry."docker.io"]
@@ -99,12 +99,12 @@ jobs:
       - name: Bajar el código al runner
         uses: actions/checkout@v6
 
-      - name: Configurar mirror de Docker Hub
-        run: bash .github/scripts/configure-docker-mirror.sh
-
       - name: Preparar Docker Buildx
         uses: docker/setup-buildx-action@v4
         with:
+          # El builder se descarga antes de aplicar su configuración de mirrors.
+          driver-opts: |
+            image=mirror.gcr.io/moby/buildkit:buildx-stable-1
           # Prioriza la caché pública de Google para las imágenes base de Docker Hub.
           buildkitd-config-inline: |
             [registry."docker.io"]
