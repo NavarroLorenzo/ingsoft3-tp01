@@ -24,6 +24,14 @@ jobs:
 
       - name: Preparar Docker Buildx
         uses: docker/setup-buildx-action@v4
+        with:
+          # El builder se descarga antes de aplicar su configuración de mirrors.
+          driver-opts: |
+            image=mirror.gcr.io/moby/buildkit:buildx-stable-1
+          # Prioriza la caché pública de Google para las imágenes base de Docker Hub.
+          buildkitd-config-inline: |
+            [registry."docker.io"]
+              mirrors = ["mirror.gcr.io"]
 
       - name: Construir etapa de tests del backend
         uses: docker/build-push-action@v7
@@ -93,6 +101,14 @@ jobs:
 
       - name: Preparar Docker Buildx
         uses: docker/setup-buildx-action@v4
+        with:
+          # El builder se descarga antes de aplicar su configuración de mirrors.
+          driver-opts: |
+            image=mirror.gcr.io/moby/buildkit:buildx-stable-1
+          # Prioriza la caché pública de Google para las imágenes base de Docker Hub.
+          buildkitd-config-inline: |
+            [registry."docker.io"]
+              mirrors = ["mirror.gcr.io"]
 
       - name: Construir etapa de tests del frontend
         uses: docker/build-push-action@v7
@@ -151,13 +167,17 @@ jobs:
     if: github.ref == 'refs/heads/main'
     environment: qa
     steps:
-      - name: Desplegar en QA el commit verificado
+      - name: Desplegar en QA las imágenes verificadas
         env:
           HOOK_API: ${{ secrets.RENDER_HOOK_API_QA }}
           HOOK_FRONT: ${{ secrets.RENDER_HOOK_FRONT_QA }}
+          IMG_API: ghcr.io/navarrolorenzo/ingsoft3-tp01-backend:sha-${{ github.sha }}
+          IMG_FRONT: ghcr.io/navarrolorenzo/ingsoft3-tp01-frontend:sha-${{ github.sha }}
         run: |
-          curl -fsS --max-time 30 "$HOOK_API&ref=$GITHUB_SHA"
-          curl -fsS --max-time 30 "$HOOK_FRONT&ref=$GITHUB_SHA"
+          echo "Imagen backend: $IMG_API"
+          echo "Imagen frontend: $IMG_FRONT"
+          curl -fsS --max-time 30 --get --data-urlencode "imgURL=$IMG_API" "$HOOK_API"
+          curl -fsS --max-time 30 --get --data-urlencode "imgURL=$IMG_FRONT" "$HOOK_FRONT"
 
       - name: Comprobar API, base de datos y frontend de QA
         shell: bash
@@ -189,13 +209,17 @@ jobs:
       group: deploy-prod
       cancel-in-progress: false
     steps:
-      - name: Desplegar en PROD el commit aprobado
+      - name: Desplegar en PROD las imágenes aprobadas
         env:
           HOOK_API: ${{ secrets.RENDER_HOOK_API_PROD }}
           HOOK_FRONT: ${{ secrets.RENDER_HOOK_FRONT_PROD }}
+          IMG_API: ghcr.io/navarrolorenzo/ingsoft3-tp01-backend:sha-${{ github.sha }}
+          IMG_FRONT: ghcr.io/navarrolorenzo/ingsoft3-tp01-frontend:sha-${{ github.sha }}
         run: |
-          curl -fsS --max-time 30 "$HOOK_API&ref=$GITHUB_SHA"
-          curl -fsS --max-time 30 "$HOOK_FRONT&ref=$GITHUB_SHA"
+          echo "Imagen backend: $IMG_API"
+          echo "Imagen frontend: $IMG_FRONT"
+          curl -fsS --max-time 30 --get --data-urlencode "imgURL=$IMG_API" "$HOOK_API"
+          curl -fsS --max-time 30 --get --data-urlencode "imgURL=$IMG_FRONT" "$HOOK_FRONT"
 
       - name: Comprobar API, base de datos y frontend de PROD
         shell: bash
