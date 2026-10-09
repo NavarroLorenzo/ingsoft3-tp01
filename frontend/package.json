@@ -8,7 +8,10 @@
     "build": "vite build",
     "test": "vitest",
     "test:run": "vitest run",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "test:integracion": "playwright test e2e/api.spec.js",
+    "test:e2e": "playwright test e2e/gastos.spec.js",
+    "test:cuenta": "node scripts/preparar-cuenta-e2e.mjs"
   },
   "dependencies": {
     "@vitejs/plugin-react": "latest",
@@ -18,6 +21,7 @@
     "vite": "latest"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.0",
     "@vitest/coverage-v8": "^4.1.10",
     "vitest": "latest"
   }

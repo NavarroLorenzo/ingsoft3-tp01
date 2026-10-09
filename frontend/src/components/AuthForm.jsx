@@ -2,14 +2,16 @@ import { Link } from "react-router-dom";
 import { useState } from "react";
 import { validarEmail, validarRegistro } from "../utils/formato";
 import Brand from "./Brand";
+import EstadoServidor from "./EstadoServidor";
 
-export function LoginPage({ onLogin }) {
+export function LoginPage({ onLogin, servidor, onReintentar }) {
   const [datos, setDatos] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [cargando, setCargando] = useState(false);
 
   async function submit(event) {
     event.preventDefault();
+    if (cargando || servidor.estado !== "listo") return;
     if (!validarEmail(datos.email) || !datos.password) {
       setError("Ingresá un email válido y tu contraseña.");
       return;
@@ -17,25 +19,26 @@ export function LoginPage({ onLogin }) {
     setCargando(true); setError("");
     try { await onLogin(datos); } catch (requestError) { setError(requestError.message); } finally { setCargando(false); }
   }
-  return <AuthCard title="Iniciar sesión" onSubmit={submit} error={error} loading={cargando} button="Iniciar sesión">
+  return <AuthCard title="Iniciar sesión" onSubmit={submit} error={error} loading={cargando} button="Iniciar sesión" servidor={servidor} onReintentar={onReintentar}>
     <label>Email<input type="email" value={datos.email} onChange={(e) => setDatos({ ...datos, email: e.target.value })} required autoComplete="email" /></label>
     <label>Contraseña<input type="password" value={datos.password} onChange={(e) => setDatos({ ...datos, password: e.target.value })} required autoComplete="current-password" /></label>
     <p className="auth-link">¿No tenés cuenta? <Link to="/register">Registrate</Link></p>
   </AuthCard>;
 }
 
-export function RegisterPage({ onRegister }) {
+export function RegisterPage({ onRegister, servidor, onReintentar }) {
   const [datos, setDatos] = useState({ nombre: "", email: "", password: "", confirmacion: "" });
   const [error, setError] = useState("");
   const [cargando, setCargando] = useState(false);
   async function submit(event) {
     event.preventDefault();
+    if (cargando || servidor.estado !== "listo") return;
     const validationError = validarRegistro(datos);
     if (validationError) { setError(validationError); return; }
     setCargando(true); setError("");
     try { await onRegister({ nombre: datos.nombre, email: datos.email, password: datos.password }); } catch (requestError) { setError(requestError.message); } finally { setCargando(false); }
   }
-  return <AuthCard title="Crear cuenta" onSubmit={submit} error={error} loading={cargando} button="Crear cuenta">
+  return <AuthCard title="Crear cuenta" onSubmit={submit} error={error} loading={cargando} button="Crear cuenta" servidor={servidor} onReintentar={onReintentar}>
     <label>Nombre<input type="text" value={datos.nombre} onChange={(e) => setDatos({ ...datos, nombre: e.target.value })} required minLength="2" maxLength="100" autoComplete="name" /></label>
     <label>Email<input type="email" value={datos.email} onChange={(e) => setDatos({ ...datos, email: e.target.value })} required autoComplete="email" /></label>
     <label>Contraseña<input type="password" value={datos.password} onChange={(e) => setDatos({ ...datos, password: e.target.value })} required minLength="8" maxLength="72" autoComplete="new-password" /></label>
@@ -44,6 +47,6 @@ export function RegisterPage({ onRegister }) {
   </AuthCard>;
 }
 
-function AuthCard({ title, onSubmit, error, loading, button, children }) {
-  return <main className="auth-page"><section className="auth-card"><Brand className="auth-brand" /><p className="eyebrow">Prueba de rollback TP6</p><h1>{title}</h1><form className="auth-form" onSubmit={onSubmit}>{children}{error && <p className="form-error" role="alert">{error}</p>}<button className="primary-button" disabled={loading} type="submit">{loading ? "Procesando..." : button}</button></form></section></main>;
+function AuthCard({ title, onSubmit, error, loading, button, children, servidor, onReintentar }) {
+  return <main className="auth-page"><section className="auth-card"><Brand className="auth-brand" /><p className="eyebrow">Prueba de rollback TP6</p><h1>{title}</h1><form className="auth-form" onSubmit={onSubmit}>{children}<EstadoServidor servidor={servidor} onReintentar={onReintentar} />{error && <p className="form-error" role="alert">{error}</p>}<button className="primary-button" disabled={loading || servidor.estado !== "listo"} type="submit">{loading ? "Procesando..." : button}</button></form></section></main>;
 }
