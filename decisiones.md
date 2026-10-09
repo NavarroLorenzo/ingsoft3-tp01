@@ -1,3 +1,15 @@
+# Enlaces del TP7
+
+- Paquetes públicos: [backend](https://github.com/users/NavarroLorenzo/packages/container/package/ingsoft3-tp01-backend) y [frontend](https://github.com/users/NavarroLorenzo/packages/container/package/ingsoft3-tp01-frontend). La corrida verde posterior al arreglo publicó ambos con `sha-a4bbf19d21a4dfce28fd90d833aeb7b1376352e8` y promovió esa etiqueta a PROD.
+- Rotura del frontend: [commit de main `592948a`](https://github.com/NavarroLorenzo/ingsoft3-tp01/commit/592948ac9cc84053be4508e42dd1e3a048308bb1), integrado con el [PR #41](https://github.com/NavarroLorenzo/ingsoft3-tp01/pull/41). Sólo cambia el código del formulario; la imagen de esa corrida lleva `sha-592948ac9cc84053be4508e42dd1e3a048308bb1`.
+- [Corrida roja con integración verde, E2E roja y PROD omitido](https://github.com/NavarroLorenzo/ingsoft3-tp01/actions/runs/38002455620). Sus dos reportes: [playwright-report-integracion](https://github.com/NavarroLorenzo/ingsoft3-tp01/actions/runs/38002455620/artifacts/11649898650) y [playwright-report-e2e](https://github.com/NavarroLorenzo/ingsoft3-tp01/actions/runs/38002455620/artifacts/11649103543), con captura y traza del retry.
+- Arreglo: [PR #42](https://github.com/NavarroLorenzo/ingsoft3-tp01/pull/42) y [corrida completa verde hasta PROD](https://github.com/NavarroLorenzo/ingsoft3-tp01/actions/runs/38003672669), sobre `a4bbf19d21a4dfce28fd90d833aeb7b1376352e8`. Reportes: [integración](https://github.com/NavarroLorenzo/ingsoft3-tp01/actions/runs/38003672669/artifacts/11649249877) y [E2E](https://github.com/NavarroLorenzo/ingsoft3-tp01/actions/runs/38003672669/artifacts/11650486226). Integración tuvo un test flaky por un 502 inicial; E2E aprobó sus tres flujos sin reintentos.
+- [Aprobación y deploy de PROD](https://github.com/NavarroLorenzo/ingsoft3-tp01/actions/runs/38003672669/job/114067985099). El environment `production` fue aprobado por NavarroLorenzo y el deployment `6972977511` terminó en `success`.
+- QA: [frontend](https://ingsoft3-front-qa.onrender.com/) y [API /health](https://ingsoft3-api-qa.onrender.com/health).
+- PROD: [frontend](https://ingsoft3-front-prod.onrender.com/) y [API /health](https://ingsoft3-api-prod.onrender.com/health).
+
+Los artefactos de Playwright se conservan siete días en Actions. Descargué ambos reportes de la corrida roja y de la verde para poder revisarlos también después de ese plazo. Mantengo los servicios de QA y PROD disponibles hasta la defensa; los Events de Render los muestro desde mi panel.
+
 # Enlaces de este TP (TP6)
 
 - Paquetes públicos: [backend](https://github.com/users/NavarroLorenzo/packages/container/package/ingsoft3-tp01-backend) y [frontend](https://github.com/users/NavarroLorenzo/packages/container/package/ingsoft3-tp01-frontend). Las imágenes del merge aprobado llevan el tag `sha-1cb00ed371359b91d4febea39cb062e22443b98a`.
@@ -324,3 +336,89 @@ Probé el rollback después de integrar y aprobar el [PR #37](https://github.com
 Al principio Docker Desktop no estaba listo para ejecutar las comprobaciones locales. También apareció un script `.sh` con finales de línea de Windows que fallaba dentro de Linux; lo corregí con `.gitattributes`. GHCR rechazó la primera publicación por falta de permiso `write_package`, que resolví dando acceso Write de Actions a ambos paquetes. En Render, el registro quedaba cargando porque Nginx intentaba buscar `backend:8080`, un nombre que solo existía en Compose. Lo cambié por una plantilla que usa `BACKEND_URL` y volví a comprobar el registro desde la app desplegada.
 
 Usé ChatGPT y Codex para entender la guía, revisar el workflow, preparar cambios de configuración y redactar esta sección. La comprobación no quedó en lo que sugirió la IA: ejecuté builds y tests, revisé los jobs y el rechazo/aprobación en GitHub, probé las URLs y usé las aplicaciones para comprobar el aislamiento de las bases. También hice el rollback con los hooks y contrasté el SHA, los horarios y el estado `Live` de ambos servicios en Render con lo que mostraban las apps.
+
+# Decisiones — TP7
+
+## La imagen como unidad de entrega
+
+En el TP6 publicaba imágenes en GHCR, pero Render volvía a construir desde GitHub. Aunque elegía el mismo commit con `ref`, otra construcción podía resolver una imagen base distinta y producir otros archivos. Por ejemplo, el frontend usa `node:22-alpine` y `nginx:1.29-alpine`: sus etiquetas pueden actualizarse entre CI y el build de Render.
+
+En este TP cambié la fuente de los cuatro servicios existentes a **Existing Image**. Conservé sus URLs, variables y hooks; no creé servicios nuevos. Render ejecuta las imágenes runtime publicadas por CI. QA las prueba y PROD recibe esas mismas referencias, sin reconstruir. Ése es el sentido de **build once, deploy many** en mi aplicación.
+
+## Etiquetas y publicación
+
+Publico backend y frontend con `sha-<los 40 caracteres del commit de main>`. Los dos packages usan el mismo SHA, aunque cada imagen tiene su propio digest. No publico `latest` porque ese nombre se movería en cada publicación y una aprobación pendiente podría terminar eligiendo otra versión.
+
+El SHA permite relacionar la imagen con el código; el digest identifica su contenido. Un tag del registry puede sobrescribirse: no es inmutable sólo por llamarse `sha-...`. Por eso no lo muevo a otra versión ni reconstruyo para promover. Si alguien lo sobrescribiera, la referencia podría dejar de representar lo que QA probó; comparar el digest permite detectar esa diferencia.
+
+Configuré inicialmente Render con `sha-030983d074bb1859343a4b9f400b2994232d9aae`. Esa referencia queda como punto de partida en Settings; cada corrida elige su imagen con `imgURL`. El encabezado puede mostrar el tag inicial mientras el deploy reciente ya ejecuta otro.
+
+La publicación automática usa `GITHUB_TOKEN` y `packages: write`, después de tests y cobertura. En un PR no hace login ni push a GHCR. Los paquetes permiten escritura a Actions y a mi cuenta; no hay un token personal escrito en el YAML. Comprobé el pull de las dos imágenes públicas sin credenciales, también para el commit del arreglo, con arquitectura `linux/amd64`.
+
+## Promoción y comprobación de la imagen
+
+La cadena quedó en el mismo workflow: **builds → deploy-qa y smoke → integracion → e2e → aprobación → deploy-prod**. Uso `needs` entre esos jobs. Los únicos `!cancelled()` de las suites son los pasos que publican reportes; los fallos no se convierten en éxito ni se omiten para llegar a producción.
+
+QA y PROD reciben `imgURL=ghcr.io/navarrolorenzo/ingsoft3-tp01-<backend o frontend>:sha-<commit>`. Los logs públicos permiten comprobar esas referencias y buscarlas en los packages. En Events de cada servicio reviso que el último deploy esté Live, indique Deploy Hook y nombre ese tag. Ésta es la comprobación de que Render consume la imagen; el evento del panel lo muestro en vivo porque no es público.
+
+El smoke comprueba `/health`, que hace ping a PostgreSQL, la raíz del frontend y el proxy `/api/categorias`, que sin JWT debe responder 401. Confirma disponibilidad, pero no un alta desde el formulario ni automáticamente el SHA servido. Puede responder la versión anterior mientras termina el nuevo deploy. Por eso también reviso Events antes de aprobar; no implementé un endpoint de versión ni una comparación automática del SHA.
+
+## Integración y E2E: qué elegí probar
+
+Las dos suites usan Playwright, pero recorren caminos distintos:
+
+| Caso | Integración: API y PostgreSQL reales | E2E: navegador y sistema completo |
+|---|---|---|
+| Alta y borrado | POST válido, GET encuentra el gasto, DELETE y GET comprueba ausencia | Completar formulario, ver fila y monto, eliminar y comprobar ausencia |
+| Validación | Descripción vacía devuelve 400 y conserva los IDs previos | Tres espacios muestran el error al usuario y no crean un gasto |
+| Edición | PUT cambia monto y descripción; GET verifica persistencia | Crear, editar desde la UI, recargar y comprobar los cambios |
+
+Elegí la edición como tercer caso porque corregir un gasto y encontrar el cambio al volver a entrar es una operación habitual. Si el monto se muestra actualizado pero no quedó guardado, la persona que usa el gestor me avisaría cuando recargue o consulte su resumen.
+
+La integración llama directamente a la API pública QA con el fixture `request`, sin navegador ni mocks. Es **integración amplia**: incluye servidor desplegado, autenticación, consultas y driver de PostgreSQL real en Neon. Gana cobertura sobre la combinación real y pierde velocidad y aislamiento; depende de red y disponibilidad. Una integración estrecha podría probar una parte con sus dependencias inmediatas bajo más control, pero no comprobaría por sí sola esta instalación de QA.
+
+La E2E además recorre React, el formulario, Nginx y la respuesta que ve el usuario. Uso roles, labels y la fila del gasto propio; no intercepto ni invento respuestas HTTP. Conservé la pirámide: los unitarios del TP5 siguen cubriendo muchas reglas y casos de borde con dobles. No repetí cada fecha o monto inválido en las suites más lentas. Tampoco puse estilos o detalles decorativos en E2E, ni comprobaciones de la pantalla en integración.
+
+## Datos de prueba y QA compartido
+
+Uso una cuenta exclusiva preparada una vez en QA. `E2E_EMAIL` y `E2E_PASSWORD` son secrets del environment `qa`; no son la contraseña de Neon ni `JWT_SECRET`. El fixture inicia sesión y reutiliza la categoría Comida. No creo un usuario por test porque la app no tiene un endpoint para borrarlo.
+
+Cada gasto lleva un prefijo con timestamp y UUID. Los tests afirman sobre sus propios datos y los borran; el fixture también limpia en `finally` si una aserción falla y verifica que no quede ninguno con ese prefijo. Las dos suites comparten QA, por lo que hago un merge por vez mientras corren.
+
+Si otro merge reemplazara QA durante una corrida, compararía el tag de Events y los horarios de `deploy-qa`. No aprobaría la corrida anterior ni la reejecutaría contra el QA nuevo: ya no estaría probando su imagen. La concurrencia de PROD no aísla QA ni resuelve una aprobación vieja. Un equipo podría usar un entorno por corrida; queda fuera del alcance de este TP.
+
+## Diagnóstico y gate de producción
+
+Para demostrar el freno cambié **el frontend**: el alta mandaba `detalle` en vez de `descripcion`. El diff no tocó tests, backend ni workflow. Los unitarios seguían verdes porque prueban utilidades y el cliente HTTP, pero no el armado del payload dentro del componente. El smoke también pasó.
+
+En la corrida roja, integración aprobó sus tres pruebas y E2E falló en dos. Los reportes mostraron que el gasto no aparecía; en Retry #1, la traza Network mostró `POST /api/gastos` sin `descripcion` y respuesta 400: “La descripción es obligatoria”. El caso de edición también falló durante su alta previa; la validación de espacios pasó.
+
+El par **integración verde / E2E roja** indicó que los caminos probados de API y base funcionaban, pero el frontend usaba mal el contrato. Si hubiera roto la API, integración habría fallado y E2E no habría arrancado por su `needs`. El gate omitió PROD sin pedir aprobación y conservó la versión buena anterior.
+
+Restauré `descripcion` en otro PR y mantuve los specs. La corrida posterior aprobó los tres flujos E2E, llegó a la revisión humana y la aprobé. Los logs de QA y PROD muestran `sha-a4bbf19d21a4dfce28fd90d833aeb7b1376352e8`; el deployment de production terminó en success sobre ese commit. El gate protege los recorridos elegidos, no todos los errores posibles ni una migración incompatible que no ejerciten las pruebas.
+
+## Cold start, reintentos y misma imagen del frontend
+
+La configuración usa 60 segundos por test, 15 por aserción, un worker y un retry. Las acciones y aserciones esperan condiciones observables; no agregué sleeps fijos ni tests que se salteen si QA está dormido. Guardo screenshot al fallar y trace en el primer retry, y publico ambos reportes aunque haya un fallo.
+
+Un test **flaky** falla y luego pasa sin cambiar el código. En la corrida del arreglo ocurrió en integración: el login recibió 502 en el primer intento y pasó en el retry; el resumen fue `2 passed` y `1 flaky`. No confirmé con logs de Render qué produjo ese 502. E2E dio `3 passed`, sin flaky ni skips. El retry permite recuperarse de un fallo transitorio, pero no borra ese resultado ni vuelve estable la prueba.
+
+También agregué una espera de disponibilidad para el usuario: el frontend consulta `/health` al abrirse y antes de login o registro, con límite total de dos minutos. Muestra que está iniciando el servidor y permite reintentar si agota la espera. Sólo repite el GET de salud, no los POST ni las escrituras. Nginx tiene una ruta exacta para `/health` y un timeout de lectura de 120 segundos. Los unitarios del frontend pasaron de 34 a 43 al cubrir esa lógica.
+
+React sigue llamando rutas relativas. El mismo JavaScript y la misma plantilla de Nginx viajan en la imagen; al arrancar se reciben `BACKEND_URL` y `DNS_RESOLVER` del entorno. Así QA apunta a su API y PROD a la suya sin volver a compilar. Credenciales de base y JWT siguen fuera de la imagen, en Render.
+
+## Release y recuperación
+
+Para cerrar el TP, `v7.0.0` debe nombrar una versión comprobada en PROD. Antes de crear el tag miro el deployment exitoso y los servicios activos; no tomo automáticamente el último commit de `main`. Un merge más nuevo podría seguir esperando aprobación.
+
+Del tag a las imágenes hay un paso: `git rev-list -n1 v7.0.0` devuelve el commit y busco `sha-<ese commit>` en ambos paquetes. La release se crea con `--verify-tag`, para usar el tag existente. El nombre de versión queda en Git y la referencia de despliegue queda en GHCR; no necesito publicar un tag `latest` ni reconstruir para poner nombre a la versión.
+
+La recuperación también pasa a elegir una imagen buena ya publicada, en lugar de reconstruir con el `ref` del TP6. Volver frontend y backend a esa imagen no revierte los datos ni las migraciones de PostgreSQL. La prueba de rollback realizada en TP6 sigue documentada como historial de ese práctico; no hice otra prueba de rollback en TP7.
+
+## Problemas encontrados y uso de IA
+
+Los primeros builds fallaron al descargar bases de Docker Hub: aparecieron 429 y 504 al pedir el token. Un primer ajuste del mirror no alcanzó porque Buildx todavía descargaba su propio builder desde Docker Hub. Indiqué `mirror.gcr.io/moby/buildkit:buildx-stable-1` en `driver-opts` y el mirror de `docker.io` en la configuración de BuildKit. Después los builds pasaron. No bajé los umbrales de cobertura; los reportes faltantes eran consecuencia de que los tests no habían llegado a ejecutarse. El mirror es una caché externa y no garantiza disponibilidad permanente.
+
+En la primera E2E local, el selector de Categoría agotó el timeout. Lo corregí usando el rol `combobox` con su nombre accesible. Ese error del spec y los errores de infraestructura no cuentan como la demostración del gate: la evidencia central es el cambio posterior del payload de la app y su arreglo.
+
+Usé ChatGPT/Codex para entender la guía, preparar los cambios locales de hooks y workflow, escribir las suites y sus fixtures, implementar la espera del backend, analizar reportes y redactar esta sección. Los commits, pushes, PR, merges, configuraciones de las plataformas y aprobaciones de esta etapa los hice yo. Verifiqué builds, cobertura y seis pruebas reales en Compose; después revisé las corridas contra QA, los dos reportes del fallo, sus capturas y trazas, y la promoción de la imagen a PROD. La prueba local fue preparación; la evidencia del gate salió de Actions contra los servicios desplegados.
