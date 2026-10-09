@@ -33,14 +33,7 @@ export default function FormularioGasto({ categorias, gastoEdicion, onGuardar, o
       return;
     }
     setError("");
-    const { descripcion, ...otrosDatos } = gasto;
-    // Cambio controlado del TP7: el alta envía un campo que la API no espera.
-    const saved = await onGuardar({
-      ...otrosDatos,
-      ...(gastoEdicion ? { descripcion } : { detalle: descripcion }),
-      monto: Number(gasto.monto),
-      categoriaId: Number(gasto.categoriaId)
-    });
+    const saved = await onGuardar({ ...gasto, monto: Number(gasto.monto), categoriaId: Number(gasto.categoriaId) });
     if (saved) setGasto(initialGasto());
   }
 
