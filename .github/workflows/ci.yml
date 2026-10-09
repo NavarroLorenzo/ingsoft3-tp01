@@ -22,8 +22,16 @@ jobs:
       - name: Bajar el código al runner
         uses: actions/checkout@v6
 
+      - name: Configurar mirror de Docker Hub
+        run: bash .github/scripts/configure-docker-mirror.sh
+
       - name: Preparar Docker Buildx
         uses: docker/setup-buildx-action@v4
+        with:
+          # Prioriza la caché pública de Google para las imágenes base de Docker Hub.
+          buildkitd-config-inline: |
+            [registry."docker.io"]
+              mirrors = ["mirror.gcr.io"]
 
       - name: Construir etapa de tests del backend
         uses: docker/build-push-action@v7
@@ -91,8 +99,16 @@ jobs:
       - name: Bajar el código al runner
         uses: actions/checkout@v6
 
+      - name: Configurar mirror de Docker Hub
+        run: bash .github/scripts/configure-docker-mirror.sh
+
       - name: Preparar Docker Buildx
         uses: docker/setup-buildx-action@v4
+        with:
+          # Prioriza la caché pública de Google para las imágenes base de Docker Hub.
+          buildkitd-config-inline: |
+            [registry."docker.io"]
+              mirrors = ["mirror.gcr.io"]
 
       - name: Construir etapa de tests del frontend
         uses: docker/build-push-action@v7
