@@ -436,3 +436,17 @@ Neon rechazó el primer apply porque faltaba `org_id`; agregué una variable obl
 ## Uso de IA y verificación
 
 Usé ChatGPT/Codex para entender la guía, preparar y comentar el HCL, analizar errores y redactar esta sección. Verifiqué formato y configuración, leí los planes y ejecuté los comandos de Terraform. Probé idempotencia, inspeccioné el estado, provoqué y reparé drift, destruí y recreé preprod y comprobé la app con datos. También comprobé el rechazo de `prevent_destroy` y retiré la protección temporal. QA y PROD siguieron disponibles. Los commits, pushes, PR y aprobaciones los hago yo.
+
+# Decisiones — TP9
+
+## Protecciones y análisis de código
+
+Activé Dependabot para Go, npm y GitHub Actions, sus alertas y sus actualizaciones de seguridad; verifiqué push protection y configuré CodeQL con Default setup. Agregué `HEAD /health` porque el monitor puede consultar con ese método: hace el mismo ping a PostgreSQL que GET, devuelve 503 si falla y ya respondió 200 en PROD.
+
+Analicé los dos avisos de permisos de `deploy-qa` y `deploy-prod`: se relacionan con OWASP A02:2025, configuración de seguridad, porque heredaban los permisos del repositorio. No demostraban que el token tuviera escritura ni que hubiera un ataque. Ambos trabajos sólo usan hooks de Render y URLs públicas, por eso declaré `permissions: {}`. La aprobación humana de PROD se conserva y cumple otra función.
+
+El tercer aviso, CWE-190/CWE-681, detectó una conversión de ID de 64 bits a `uint`. En 32 bits, `4294967297` podía convertirse en `1`; en la imagen actual de 64 bits no se produce ese truncamiento. Usé `strconv.IntSize` para rechazar valores fuera del tipo destino. La prueba falló antes del arreglo en 32 bits y pasó después; también pasó toda la suite nativa, con 61,9% de cobertura y sin bajar el umbral. El cierre de las alertas se comprueba con otro análisis de CodeQL después del merge.
+
+## Uso de IA y verificación hasta esta etapa
+
+Usé ChatGPT/Codex para leer la guía, preparar y comentar los cambios, revisar el PR de Dependabot y analizar los hallazgos con documentación oficial. Verifiqué la configuración remota, el pipeline del primer PR, HEAD en PROD y las pruebas locales. Los commits, pushes, PR, merges, configuraciones remotas y aprobaciones los hago yo. El monitor, Sentry y sus mediciones todavía están pendientes; no los doy por realizados.
