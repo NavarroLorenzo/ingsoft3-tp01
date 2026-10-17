@@ -17,6 +17,8 @@ type Handler struct {
 func NewRouter(handler *Handler) *gin.Engine {
 	router := gin.Default()
 	router.GET("/health", handler.Health)
+	// El monitor puede usar HEAD; conserva el mismo ping a la base que hace GET.
+	router.HEAD("/health", handler.Health)
 
 	api := router.Group("/api")
 	{
