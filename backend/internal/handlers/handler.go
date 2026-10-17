@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"errors"
 	"net/http"
 	"strconv"
 
@@ -23,11 +22,6 @@ func NewRouter(handler *Handler) *gin.Engine {
 	router.GET("/health", handler.Health)
 	// El monitor puede usar HEAD; conserva el mismo ping a la base que hace GET.
 	router.HEAD("/health", handler.Health)
-	// Temporal para el TP9: generar el error real en Sentry y retirar esta ruta al cerrar.
-	router.GET("/api/falla", func(c *gin.Context) {
-		c.Status(http.StatusInternalServerError)
-		panic(errors.New("Falla de prueba del TP9"))
-	})
 
 	api := router.Group("/api")
 	{
