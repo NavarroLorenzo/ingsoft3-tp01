@@ -1,5 +1,7 @@
+import "./instrument";
 import { StrictMode, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
+import { reactErrorHandler } from "@sentry/react";
 import { BrowserRouter, Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import App from "./App";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -77,4 +79,9 @@ function RouterApp() {
   </Routes>;
 }
 
-createRoot(document.getElementById("root")).render(<StrictMode><BrowserRouter><RouterApp /></BrowserRouter></StrictMode>);
+// React 19 entrega estos errores al SDK además de los errores globales del navegador.
+createRoot(document.getElementById("root"), {
+  onUncaughtError: reactErrorHandler(),
+  onCaughtError: reactErrorHandler(),
+  onRecoverableError: reactErrorHandler(),
+}).render(<StrictMode><BrowserRouter><RouterApp /></BrowserRouter></StrictMode>);

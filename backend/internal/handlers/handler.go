@@ -1,10 +1,12 @@
 package handlers
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 
 	"gestor-gastos/backend/internal/middleware"
+	sentrygin "github.com/getsentry/sentry-go/gin"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -16,9 +18,16 @@ type Handler struct {
 
 func NewRouter(handler *Handler) *gin.Engine {
 	router := gin.Default()
+	// Mide cada ruta y captura panics; Gin conserva la respuesta 500 y sigue atendiendo.
+	router.Use(sentrygin.New(sentrygin.Options{Repanic: true}))
 	router.GET("/health", handler.Health)
 	// El monitor puede usar HEAD; conserva el mismo ping a la base que hace GET.
 	router.HEAD("/health", handler.Health)
+	// Temporal para el TP9: generar el error real en Sentry y retirar esta ruta al cerrar.
+	router.GET("/api/falla", func(c *gin.Context) {
+		c.Status(http.StatusInternalServerError)
+		panic(errors.New("Falla de prueba del TP9"))
+	})
 
 	api := router.Group("/api")
 	{
