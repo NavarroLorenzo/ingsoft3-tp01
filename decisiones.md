@@ -422,3 +422,17 @@ Los primeros builds fallaron al descargar bases de Docker Hub: aparecieron 429 y
 En la primera E2E local, el selector de Categoría agotó el timeout. Lo corregí usando el rol `combobox` con su nombre accesible. Ese error del spec y los errores de infraestructura no cuentan como la demostración del gate: la evidencia central es el cambio posterior del payload de la app y su arreglo.
 
 Usé ChatGPT/Codex para entender la guía, preparar los cambios locales de hooks y workflow, escribir las suites y sus fixtures, implementar la espera del backend, analizar reportes y redactar esta sección. Los commits, pushes, PR, merges, configuraciones de las plataformas y aprobaciones de esta etapa los hice yo. Verifiqué builds, cobertura y seis pruebas reales en Compose; después revisé las corridas contra QA, los dos reportes del fallo, sus capturas y trazas, y la promoción de la imagen a PROD. La prueba local fue preparación; la evidencia del gate salió de Actions contra los servicios desplegados.
+
+# Decisiones — TP8
+
+## Riel y versiones
+
+Elegí Terraform 1.15.8 con `kislerdm/neon` 0.18.0 y `render-oss/render` 1.9.1, como en la guía. Declaré un preprod independiente en `infra/`, con proyecto, rol y base en Neon, más API y frontend en Render usando las imágenes del TP7. La conexión de Go se arma con los `DB_*` derivados de Neon y el frontend referencia la URL de su propia API. Las claves de los providers se cargan en la terminal; Render genera la clave de login. El estado queda local e ignorado en Git; `.terraform.lock.hcl` sí se versiona.
+
+## Problemas encontrados
+
+Neon rechazó el primer apply porque faltaba `org_id`; agregué una variable obligatoria y cargué el ID de la organización desde la terminal. Render rechazó el owner ID incompleto; consulté `/v1/owners` y usé el ID completo del workspace, con prefijo `tea-`. También hubo demoras iniciales en los chequeos de salud que se resolvieron al reintentar. En la recreación cambió el host de Neon: las referencias actualizaron la conexión sin copiar valores nuevos.
+
+## Uso de IA y verificación
+
+Usé ChatGPT/Codex para entender la guía, preparar y comentar el HCL, analizar errores y redactar esta sección. Verifiqué formato y configuración, leí los planes y ejecuté los comandos de Terraform. Probé idempotencia, inspeccioné el estado, provoqué y reparé drift, destruí y recreé preprod y comprobé la app con datos. También comprobé el rechazo de `prevent_destroy` y retiré la protección temporal. QA y PROD siguieron disponibles. Los commits, pushes, PR y aprobaciones los hago yo.
