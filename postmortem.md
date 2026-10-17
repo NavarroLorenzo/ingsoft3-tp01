@@ -39,7 +39,7 @@ No fue necesario atribuir una falla a una persona, al código o a la base para e
 | Configurar un monitor externo de `/health`, cada cinco minutos, con emails DOWN/UP, y probar el ciclo completo. | Lorenzo Navarro | Implementado y comprobado. Monitor pausado al cerrar la práctica; en una operación real se mantendría activo con una cuota adecuada. |
 | Mantener GET y HEAD `/health` comprobando también el ping a PostgreSQL, con 503 si no hay conexión. | Lorenzo Navarro | Implementado; pruebas automáticas de salud y smoke del pipeline conservados. |
 | Incorporar al repositorio el procedimiento de recuperación que figura debajo, para distinguir reanudación, disponibilidad HTTP y recuperación del monitor. | Lorenzo Navarro | Documentado en este postmortem. |
-| Retirar `/api/falla` y su prueba temporal después de confirmar la recepción real del error en Sentry. | Lorenzo Navarro | Preparado localmente para el cierre; pendiente de commit, PR y promoción a PROD. Sentry permanece integrado. |
+| Retirar `/api/falla` y su prueba temporal después de confirmar la recepción real del error en Sentry. | Lorenzo Navarro | Implementado mediante el PR #67 y comprobado en PROD: `/api/falla` responde 404. Sentry permanece integrado. |
 
 ### Procedimiento de recuperación y repetición de la práctica
 
