@@ -54,7 +54,8 @@ func writeError(c *gin.Context, status int, message string) {
 }
 
 func parseID(c *gin.Context) (uint, bool) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	// IntSize coincide con uint: evita truncar IDs si se compila para 32 bits.
+	id, err := strconv.ParseUint(c.Param("id"), 10, strconv.IntSize)
 	if err != nil || id == 0 {
 		writeError(c, http.StatusBadRequest, "El identificador es inválido.")
 		return 0, false
