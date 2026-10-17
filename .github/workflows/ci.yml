@@ -166,6 +166,8 @@ jobs:
     needs: [build-backend, build-frontend]
     if: github.ref == 'refs/heads/main'
     environment: qa
+    # Usa los hooks de Render y URLs públicas; no necesita permisos de GITHUB_TOKEN.
+    permissions: {}
     steps:
       - name: Desplegar en QA las imágenes verificadas
         env:
@@ -286,6 +288,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: e2e
     environment: production
+    # La aprobación del entorno se conserva; el job no llama a la API de GitHub.
+    permissions: {}
     concurrency:
       group: deploy-prod
       cancel-in-progress: false
