@@ -15,6 +15,14 @@ test-results/
 .env
 *.local
 
+# Terraform: estado y valores locales pueden contener secretos.
+*.tfstate
+*.tfstate.*
+.terraform/
+*.tfvars
+*.tfvars.json
+# .terraform.lock.hcl se versiona para fijar los providers y sus hashes.
+
 # binarios compilados
 *.exe
 *.out
