@@ -48,5 +48,5 @@ export function RegisterPage({ onRegister, servidor, onReintentar }) {
 }
 
 function AuthCard({ title, onSubmit, error, loading, button, children, servidor, onReintentar }) {
-  return <main className="auth-page"><section className="auth-card"><Brand className="auth-brand" /><p className="eyebrow">Prueba de rollback TP6</p><h1>{title}</h1><form className="auth-form" onSubmit={onSubmit}>{children}<EstadoServidor servidor={servidor} onReintentar={onReintentar} />{error && <p className="form-error" role="alert">{error}</p>}<button className="primary-button" disabled={loading || servidor.estado !== "listo"} type="submit">{loading ? "Procesando..." : button}</button></form></section></main>;
+  return <main className="auth-page"><section className="auth-card"><Brand className="auth-brand" /><p className="eyebrow">Tus gastos, más claros</p><h1>{title}</h1><form className="auth-form" onSubmit={onSubmit}>{children}<EstadoServidor servidor={servidor} onReintentar={onReintentar} />{error && <p className="form-error" role="alert">{error}</p>}<button className="primary-button" disabled={loading || servidor.estado !== "listo"} type="submit">{loading ? "Procesando..." : button}</button></form></section></main>;
 }
