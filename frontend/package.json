@@ -19,11 +19,11 @@
     "react": "latest",
     "react-dom": "latest",
     "react-router-dom": "^7.18.2",
-    "vite": "latest"
+    "vite": "8.3.4"
   },
   "devDependencies": {
     "@playwright/test": "^1.64.0",
-    "@vitest/coverage-v8": "^4.1.10",
-    "vitest": "latest"
+    "@vitest/coverage-v8": "4.1.12",
+    "vitest": "4.1.12"
   }
 }
