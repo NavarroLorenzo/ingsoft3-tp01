@@ -440,7 +440,41 @@ Se implementó:
 
 Se agregó una suite de tests de unidad con mocks, cobertura en backend y frontend, reportes descargables, resumen visible en GitHub Actions y quality gates que bloquean el merge cuando la cobertura baja.
 
-**Cierre previsto:** `v5.0.0`, una vez que la secuencia de Pull Requests esté completada.
+La demostración completa de cobertura está en el [PR #25](https://github.com/NavarroLorenzo/ingsoft3-tp01/pull/25). El [PR #31](https://github.com/NavarroLorenzo/ingsoft3-tp01/pull/31) permanece abierto y rojo a propósito para mostrar el bloqueo del merge en la defensa.
+
+**Release:** [v5.0.0](https://github.com/NavarroLorenzo/ingsoft3-tp01/releases/tag/v5.0.0)
+
+---
+
+### TP6 — Entrega continua y entornos
+
+Se publican imágenes verificadas en GHCR, QA se despliega automáticamente y PROD requiere aprobación. Los entornos tienen bases separadas, smoke tests y un rollback ensayado de 29 segundos.
+
+**Release:** [v6.0.0](https://github.com/NavarroLorenzo/ingsoft3-tp01/releases/tag/v6.0.0). El tag conserva la versión desplegada original. Sus notas enlazan el [complemento documental posterior del TP6](https://github.com/NavarroLorenzo/ingsoft3-tp01/blob/030983d074bb1859343a4b9f400b2994232d9aae/decisiones.md#L282), que incluye los enlaces y la medición del rollback.
+
+---
+
+### TP7 — Imágenes, integración y E2E
+
+QA y PROD ejecutan las imágenes de GHCR identificadas por el SHA del commit. Tres pruebas de integración y tres flujos E2E verifican QA antes de pedir aprobación de PROD. Una rotura del frontend dejó integración verde, E2E roja y producción bloqueada; otro PR corrigió la app.
+
+**Release:** [v7.0.0](https://github.com/NavarroLorenzo/ingsoft3-tp01/releases/tag/v7.0.0), con copias públicas de los cuatro reportes históricos, conservadas después del vencimiento de los artefactos de Actions.
+
+---
+
+### TP8 — Infraestructura como código
+
+`infra/` declara un preprod independiente en Neon y Render, con providers fijados, conexiones derivadas e imágenes del TP7. Se ensayaron dos ciclos de destrucción y recreación; preprod se mantiene destruido cuando no se usa.
+
+**Release:** [v8.0.0](https://github.com/NavarroLorenzo/ingsoft3-tp01/releases/tag/v8.0.0)
+
+---
+
+### TP9 — DevSecOps y observabilidad
+
+Dependabot, CodeQL y push protection protegen el repositorio. UptimeRobot comprobó una caída y recuperación de PROD, y quedó pausado. Sentry registra errores y tiempos en backend y frontend; el [issue #66](https://github.com/NavarroLorenzo/ingsoft3-tp01/issues/66) lleva un dato observado al tablero del TP3.
+
+**Release:** [v9.0.0](https://github.com/NavarroLorenzo/ingsoft3-tp01/releases/tag/v9.0.0). Los cambios de mantenimiento posteriores se documentan por separado en `decisiones.md` y no mueven ese cierre histórico.
 
 ---
 
@@ -453,8 +487,14 @@ TP1 → v1.0.0
 TP2 → v2.0.0
 TP3 → v3.0.0
 TP4 → v4.0.0
-TP5 → v5.0.0 (pendiente de cierre)
+TP5 → v5.0.0
+TP6 → v6.0.0
+TP7 → v7.0.0
+TP8 → v8.0.0
+TP9 → v9.0.0
 ```
+
+Las decisiones y los enlaces de cada etapa están en [decisiones.md](decisiones.md). La [preparación de la defensa P2](docs/defensa-p2.md) reúne el recorrido, las comprobaciones privadas y los pasos que deben hacerse en vivo. El código de cada entrega se consulta en su tag; las notas de las releases identifican los complementos documentales o reportes archivados con posterioridad.
 
 ---
 

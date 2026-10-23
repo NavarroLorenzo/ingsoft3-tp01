@@ -239,7 +239,8 @@ jobs:
         with:
           name: playwright-report-integracion
           path: frontend/playwright-report
-          retention-days: 7
+          # Conservar el reporte para la defensa; los hitos también se archivan en Releases.
+          retention-days: 90
           if-no-files-found: error
 
   e2e:
@@ -281,7 +282,8 @@ jobs:
         with:
           name: playwright-report-e2e
           path: frontend/playwright-report
-          retention-days: 7
+          # Conservar el reporte para la defensa; los hitos también se archivan en Releases.
+          retention-days: 90
           if-no-files-found: error
 
   deploy-prod:
