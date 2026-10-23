@@ -38,11 +38,19 @@ export function validarFechaGasto(fecha) {
   return null;
 }
 
+export function validarDescripcionGasto(descripcion) {
+  if (typeof descripcion !== "string") return "La descripción es obligatoria.";
+
+  const texto = descripcion.trim();
+  if (texto === "") return "La descripción es obligatoria.";
+  if (texto.length < 3) return "La descripción debe tener al menos 3 caracteres.";
+  if (texto.length > 200) return "La descripción no puede superar los 200 caracteres.";
+  return null;
+}
+
 export function validarGasto(gasto) {
   const descripcion = gasto.descripcion.trim();
-  if (descripcion.length < 3 || descripcion.length > 200) {
-    return "La descripción debe tener entre 3 y 200 caracteres.";
-  }
+  if (descripcion.length < 3 || descripcion.length > 200) return "La descripción debe tener entre 3 y 200 caracteres.";
   const monto = Number(gasto.monto);
   if (!Number.isFinite(monto) || monto <= 0) {
     return "El monto debe ser mayor que cero.";
