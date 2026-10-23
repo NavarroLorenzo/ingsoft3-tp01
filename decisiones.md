@@ -2,13 +2,13 @@
 
 - Paquetes públicos: [backend](https://github.com/users/NavarroLorenzo/packages/container/package/ingsoft3-tp01-backend) y [frontend](https://github.com/users/NavarroLorenzo/packages/container/package/ingsoft3-tp01-frontend). La corrida verde posterior al arreglo publicó ambos con `sha-a4bbf19d21a4dfce28fd90d833aeb7b1376352e8` y promovió esa etiqueta a PROD.
 - Rotura del frontend: [commit de main `592948a`](https://github.com/NavarroLorenzo/ingsoft3-tp01/commit/592948ac9cc84053be4508e42dd1e3a048308bb1), integrado con el [PR #41](https://github.com/NavarroLorenzo/ingsoft3-tp01/pull/41). Sólo cambia el código del formulario; la imagen de esa corrida lleva `sha-592948ac9cc84053be4508e42dd1e3a048308bb1`.
-- [Corrida roja con integración verde, E2E roja y PROD omitido](https://github.com/NavarroLorenzo/ingsoft3-tp01/actions/runs/38002455620). Sus dos reportes: [playwright-report-integracion](https://github.com/NavarroLorenzo/ingsoft3-tp01/actions/runs/38002455620/artifacts/11649898650) y [playwright-report-e2e](https://github.com/NavarroLorenzo/ingsoft3-tp01/actions/runs/38002455620/artifacts/11649103543), con captura y traza del retry.
-- Arreglo: [PR #42](https://github.com/NavarroLorenzo/ingsoft3-tp01/pull/42) y [corrida completa verde hasta PROD](https://github.com/NavarroLorenzo/ingsoft3-tp01/actions/runs/38003672669), sobre `a4bbf19d21a4dfce28fd90d833aeb7b1376352e8`. Reportes: [integración](https://github.com/NavarroLorenzo/ingsoft3-tp01/actions/runs/38003672669/artifacts/11649249877) y [E2E](https://github.com/NavarroLorenzo/ingsoft3-tp01/actions/runs/38003672669/artifacts/11650486226). Integración tuvo un test flaky por un 502 inicial; E2E aprobó sus tres flujos sin reintentos.
+- [Corrida roja con integración verde, E2E roja y PROD omitido](https://github.com/NavarroLorenzo/ingsoft3-tp01/actions/runs/38002455620). Copias archivadas de sus dos reportes: [integración, 3 aprobados](https://github.com/NavarroLorenzo/ingsoft3-tp01/releases/download/v7.0.0/tp7-38002455620-integracion-publico.zip) y [E2E, 1 aprobado y 2 fallidos](https://github.com/NavarroLorenzo/ingsoft3-tp01/releases/download/v7.0.0/tp7-38002455620-e2e-publico.zip), con capturas y trazas del retry.
+- Arreglo: [PR #42](https://github.com/NavarroLorenzo/ingsoft3-tp01/pull/42) y [corrida completa verde hasta PROD](https://github.com/NavarroLorenzo/ingsoft3-tp01/actions/runs/38003672669), sobre `a4bbf19d21a4dfce28fd90d833aeb7b1376352e8`. Reportes archivados: [integración, 2 aprobados y 1 flaky](https://github.com/NavarroLorenzo/ingsoft3-tp01/releases/download/v7.0.0/tp7-38003672669-integracion-publico.zip) y [E2E, 3 aprobados](https://github.com/NavarroLorenzo/ingsoft3-tp01/releases/download/v7.0.0/tp7-38003672669-e2e-publico.zip). El flaky de integración fue un 502 inicial; E2E aprobó sus tres flujos sin reintentos.
 - [Aprobación y deploy de PROD](https://github.com/NavarroLorenzo/ingsoft3-tp01/actions/runs/38003672669/job/114067985099). El environment `production` fue aprobado por NavarroLorenzo y el deployment `6972977511` terminó en `success`.
 - QA: [frontend](https://ingsoft3-front-qa.onrender.com/) y [API /health](https://ingsoft3-api-qa.onrender.com/health).
 - PROD: [frontend](https://ingsoft3-front-prod.onrender.com/) y [API /health](https://ingsoft3-api-prod.onrender.com/health).
 
-Los artefactos de Playwright se conservan siete días en Actions. Descargué ambos reportes de la corrida roja y de la verde para poder revisarlos también después de ese plazo. Mantengo los servicios de QA y PROD disponibles hasta la defensa; los Events de Render los muestro desde mi panel.
+Los artefactos originales de Playwright vencieron después de siete días. El 23/10/2026 publiqué en los assets de v7.0.0 copias de los reportes que había descargado de esas mismas corridas; no son reejecuciones. Se retiraron credenciales, tokens y correo de la cuenta de prueba del texto, reporte embebido y trazas, y se omitieron fotogramas de screencast del login. Se conservan resultados, pasos, DOM, capturas del fallo y Network, incluido el POST 400. La [procedencia con resultados y SHA-256](https://github.com/NavarroLorenzo/ingsoft3-tp01/releases/download/v7.0.0/tp7-reportes-procedencia.json) explica las diferencias con los originales. Cada ZIP incluye instrucciones: descomprimir y abrir con `npx playwright show-report "<carpeta>"`, sin correr los tests. Los nuevos reportes de Actions se retienen 90 días. Mantengo QA y PROD disponibles hasta la defensa; los Events de Render los muestro desde mi panel.
 
 # Enlaces de este TP (TP6)
 
@@ -17,6 +17,7 @@ Los artefactos de Playwright se conservan siete días en Actions. Descargué amb
 - QA: [frontend](https://ingsoft3-front-qa.onrender.com/) y [API](https://ingsoft3-api-qa.onrender.com/health).
 - PROD: [frontend](https://ingsoft3-front-prod.onrender.com/) y [API](https://ingsoft3-api-prod.onrender.com/health).
 - [Release v6.0.0 con notas](https://github.com/NavarroLorenzo/ingsoft3-tp01/releases/tag/v6.0.0).
+- [Complemento documental posterior del TP6](https://github.com/NavarroLorenzo/ingsoft3-tp01/blob/030983d074bb1859343a4b9f400b2994232d9aae/decisiones.md#L282), con el rollback medido. Se incorporó después del tag; sus notas enlazan este complemento sin mover la versión original.
 
 # Decisiones — TP1
 
@@ -200,6 +201,8 @@ Agregué etiquetas OCI en ambos Dockerfiles con la URL del repositorio. Esto vin
 
 # Decisiones — TP5
 
+Las cantidades y mediciones de esta sección describen el cierre del TP5. Los cambios y mediciones posteriores se registran en los TP siguientes y en el mantenimiento; no reemplazan los resultados históricos de sus corridas.
+
 ## Lógica elegida para testear
 
 Elegí las reglas donde un error afecta directamente a los gastos o a los datos de otra persona: validación de montos, fechas, categorías y registro; inicio de sesión; filtros; acceso a gastos; y borrado de categorías con gastos asociados.
@@ -244,6 +247,8 @@ En frontend el alcance elegido da **84,14% de sentencias**, **82,35% de ramas**,
 
 La cobertura muestra qué código se ejecutó, no que todos los asserts sean buenos; por eso las pruebas verifican valores, mensajes, códigos HTTP y llamadas a los mocks, no solo que una función haya corrido.
 
+Un contraejemplo propio sería un test que sólo ejecute `validarCategoria("A")` sin ningún `expect`: suma cobertura aunque la función deje de rechazar una categoría de una sola letra. Es un ejemplo conceptual, no un test agregado a la suite. Mi parametrizado sí comprueba que ese caso devuelva el error de nombre y que dos letras se acepten; si falta ese assert, ejecutar la rama no demuestra la regla.
+
 ## Alcance excluido de la cobertura
 
 En backend no entran `cmd/api`, porque solamente cablea variables de entorno, router y servidor, ni `internal/database`, porque concentra la conexión, migración y seed de PostgreSQL. Sí entran handlers, middleware y modelos con comportamiento: ahí están las reglas de acceso y el contrato JSON.
@@ -252,7 +257,7 @@ En frontend entran `src/api`, `src/services` y `src/utils`. Quedan afuera `main.
 
 ## Ejercicio del camino sin cubrir
 
-Al revisar el reporte del backend encontré una rama sin recorrer en la validación de registro: el caso en que la contraseña está vacía. La entrada concreta fue un usuario con nombre y email válidos, pero con `Password: ""`.
+Al revisar el reporte del backend encontré una rama sin recorrer en la validación de registro: el caso en que la contraseña está vacía. La decisión concreta está en [backend/internal/validation/validation.go, líneas 73–74 del código revisado](https://github.com/NavarroLorenzo/ingsoft3-tp01/blob/807ea0288eeba5e393c25797a82ee67243a640ee/backend/internal/validation/validation.go#L73), `if length == 0`, llamada desde `ValidateRegister` en la línea 43. La entrada concreta fue un usuario con nombre y email válidos, pero con `Password: ""`. Go informa sentencias, no un porcentaje de ramas; identifico aquí el camino del código, no una métrica que Go no entrega.
 
 Decidí agregar `TestRegistroRechazaContrasenaVacia`. El test comprueba que se devuelva el mensaje correcto cuando falta la contraseña. Con ese caso se cubre una validación que antes no se ejecutaba y se deja documentado qué camino apareció al revisar el reporte.
 
@@ -275,9 +280,11 @@ En el caso rojo, el script comprueba que el código compile y que los tests exis
 
 Conservo los mismos checks del TP4: `build-backend` y `build-frontend`. Son obligatorios para hacer merge a `main`, así que el freno de calidad no necesita un check nuevo: el mismo pipeline bloquea cuando un test falla o cuando la cobertura baja.
 
-La demostración se va a registrar con dos Pull Requests distintos. El primero mostrará el recorrido completo: una regla nueva sin tests deja el build compilando y todos los tests existentes en verde, pero el check de frontend queda rojo por quedar debajo de 80%; después se agregan los casos faltantes, el check pasa y el PR se integra a `main`.
+La demostración completa quedó en el [PR #25](https://github.com/NavarroLorenzo/ingsoft3-tp01/pull/25). El [commit `15fe06d`](https://github.com/NavarroLorenzo/ingsoft3-tp01/commit/15fe06df9f4ad526311d7642791e928f9c82c4da) agregó validación de fechas en el código de la app sin agregar tests. En la [corrida roja 36472809700](https://github.com/NavarroLorenzo/ingsoft3-tp01/actions/runs/36472809700), el código compilaba y los **32 tests pasaban**. El check `build-frontend` falló exclusivamente por cobertura: **98,61% líneas, 98,78% sentencias y 98,52% ramas**, menores que el **100%** que se exigía entonces, con **Vitest 4.1.10**. No confundo ese umbral histórico con el 80% elegido después.
 
-El segundo Pull Request tendrá otra regla nueva sin tests y se dejará abierto en rojo hasta la defensa. Ahí se podrá ver que el merge queda bloqueado por el quality gate aunque no haya ningún test fallando. Cuando estén hechas las nuevas corridas, voy a agregar en esta sección la URL de cada PR y de cada run concreto, junto con sus porcentajes.
+En ese mismo PR, el [commit `5724765`](https://github.com/NavarroLorenzo/ingsoft3-tp01/commit/5724765fc9aa92c3ec994260ab2f2a2e1f9a5c24) agregó los casos de fecha faltantes, incluidos error y borde válido; no bajó el threshold. La [corrida 36473208001](https://github.com/NavarroLorenzo/ingsoft3-tp01/actions/runs/36473208001) pasó y el PR se mergeó. En esa corrida están el Summary de los dos jobs y los reportes descargables de [backend](https://github.com/NavarroLorenzo/ingsoft3-tp01/actions/runs/36473208001/artifacts/10992233035) y [frontend](https://github.com/NavarroLorenzo/ingsoft3-tp01/actions/runs/36473208001/artifacts/10992707334). Los PR #28–30 corresponden al ajuste posterior del umbral y las mejoras de la suite.
+
+El segundo es el [PR #31](https://github.com/NavarroLorenzo/ingsoft3-tp01/pull/31), que **conservo abierto y rojo hasta la defensa**, sin corregir ni mergear. Su [corrida 37149908122](https://github.com/NavarroLorenzo/ingsoft3-tp01/actions/runs/37149908122) compila y aprueba los **34 tests**, pero `build-frontend` falla por **75% de sentencias y 73,68% de ramas frente al 80%**. Backend sigue verde. El primer PR cuenta el arreglo completo; este segundo permite comprobar el freno vigente.
 
 ## Problemas encontrados y resolución
 
@@ -330,6 +337,8 @@ Hoy Render despliega un servicio por entorno, así que no tengo un blue-green re
 Mi rollback actual es más simple: identifico el último commit bueno en Deployments o en la release, llamo los hooks de los dos servicios de PROD con `&ref=<sha-bueno>` y espero a que **ambos** figuren `Live` con ese commit en Render → Deploys. Después pruebo la app. No usaría `v5.0.0` para este ejercicio porque es anterior a la configuración de Nginx que necesita Render. Este camino manual usa los hooks de Render para volver rápido a una versión conocida; no pasa por el gate de aprobación de GitHub, por eso reservo esos hooks para una recuperación y no para los despliegues normales.
 
 Probé el rollback después de integrar y aprobar el [PR #37](https://github.com/NavarroLorenzo/ingsoft3-tp01/pull/37), que dejó visible “Prueba de rollback TP6” en PROD con el commit `a992dfd61497634c340455bf5390b0f2e5374464`. Disparé los hooks de API y frontend PROD con el SHA de `v6.0.0`, `1cb00ed371359b91d4febea39cb062e22443b98a`. El primer hook se llamó a las **18:46:37**; en Render → Deploys, la API quedó `Live` a las **18:47:01** y el frontend a las **18:47:06**. Los dos muestran el commit `1cb00ed`, así que el tiempo medido hasta tener ambos servicios en la versión anterior fue de **29 segundos**. Render informa 23,8 s para la API y 27,8 s para el frontend. El cronómetro de PowerShell marcó 121 s porque ejecuté la línea final bastante después de verlos `Live`; para medir el despliegue tomé los horarios de Render. Comprobé que PROD volvió a mostrar “Tus gastos, más claros” y QA conservó “Prueba de rollback TP6”. Volver el código atrás no revierte los datos ni una migración de base ya aplicada.
+
+**Aclaración del cierre:** la sección TP6 y sus enlaces se incorporaron con #37 y la medición con [#38](https://github.com/NavarroLorenzo/ingsoft3-tp01/pull/38), después del commit etiquetado como v6.0.0. El 23/10/2026 decidí conservar ese tag público y enlazar el [complemento histórico completo](https://github.com/NavarroLorenzo/ingsoft3-tp01/blob/030983d074bb1859343a4b9f400b2994232d9aae/decisiones.md#L282) desde las notas de la release. Lo presento como documentación posterior; no afirmo que estuviera dentro del snapshot original.
 
 ## Problemas encontrados y uso de IA
 
@@ -468,3 +477,9 @@ Cerrar un PR de Dependabot no aplica su corrección. Tras ordenar las propuestas
 Verificación local del frontend: **43 tests aprobados**, cobertura **88,28% statements, 84% branches, 89,18% functions y 90,9% lines**, build correcto y **npm audit sin vulnerabilidades reportadas** para el lockfile actualizado. Las promociones conservan los controles de CI, CodeQL, QA, integración y E2E, con los mismos umbrales. Comparo las alertas con las versiones del manifiesto y del grafo de GitHub: que el código se haya actualizado no significa que la alerta ya figure cerrada; no uso el descarte manual para ocultar esa diferencia.
 
 Para este mantenimiento autoricé expresamente a Codex a preparar cambios, commits y PR, integrarlos y efectuar las promociones mediante la revisión protegida de production con mi cuenta. Esta autorización posterior distingue estas operaciones del cierre original, que realicé yo. Las comprobaciones y resultados quedan en el seguimiento; el PR intencional #31 y el tag/release histórico **v9.0.0** se conservan.
+
+## Correcciones documentales para la defensa — 23/10/2026
+
+La revisión conjunta de las guías detectó decisiones TP5 redactadas en futuro y sin enlaces, notas de v5 que confundían los dos PR, documentación TP6 posterior al tag y reportes TP7 vencidos en Actions. Completé las explicaciones con las corridas reales, corregí README y notas de release y conservé los reportes originales mediante copias públicas saneadas. Amplié a 90 días la retención de los nuevos reportes de Playwright, sin cambiar tests, umbrales ni dependencias. Los reportes históricos quedan en los assets de v7 y no se atribuyen a una nueva corrida.
+
+Verifiqué la estructura y resultados de las cuatro copias, la ausencia de los valores de sesión detectados y la apertura del reporte y su traza/Network con el POST 400 original. Autoricé expresamente publicar esos cuatro ZIP y su manifiesto después de que la revisión automática pidiera confirmar el payload público. Los tags remotos se conservan; el v5 local se alineó con el remoto guardando su referencia anterior en un respaldo local. La [preparación de defensa](docs/defensa-p2.md) identifica qué debo mostrar personalmente: paneles privados, retención de telemetría, formulario y creación/destrucción de preprod en vivo. Usé Codex para preparar, revisar y publicar estas correcciones, con la autorización de operación ya indicada y verificaciones registradas en el seguimiento.
