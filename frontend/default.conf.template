@@ -7,6 +7,14 @@ server {
         try_files $uri $uri/ /index.html;
     }
 
+    # La versión es un archivo de ESTA imagen; nunca pasa por el backend ni la SPA.
+    location = /version.json {
+        root /usr/share/nginx/html;
+        default_type application/json;
+        add_header Cache-Control "no-store" always;
+        try_files $uri =404;
+    }
+
     # La URL del backend y el DNS se reciben del entorno al arrancar.
     resolver ${DNS_RESOLVER} valid=10s ipv6=off;
     set $backend_api ${BACKEND_URL};

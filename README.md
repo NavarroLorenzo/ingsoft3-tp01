@@ -478,6 +478,16 @@ Dependabot, CodeQL y push protection protegen el repositorio. UptimeRobot compro
 
 ---
 
+## Comprobar la versión desplegada
+
+En el pipeline actual, QA y PROD esperan que **backend y frontend informen el mismo commit completo de la corrida** antes de dar el deploy por terminado. El backend lo incorpora al compilar y lo devuelve en `/health`, junto al estado de PostgreSQL; el frontend lo guarda dentro de su imagen en `/version.json`. No cambia la interfaz de la app.
+
+En Actions, abrir `deploy-qa` o `deploy-prod` → **Esperar y verificar la versión**. El Summary muestra los dos commits observados. Si Render todavía sirve una imagen anterior, el paso reintenta; si no aparecen las dos versiones esperadas, falla y no habilita la etapa siguiente. Se conservan la comprobación del proxy, integración, E2E y la aprobación de PROD.
+
+También se puede consultar [backend PROD /health](https://ingsoft3-api-prod.onrender.com/health) y [frontend PROD /version.json](https://ingsoft3-front-prod.onrender.com/version.json) y comparar `commit` con el SHA de Actions. Esto identifica el código incorporado a las imágenes; Events y GHCR permiten revisar además el despliegue y sus imágenes. En una compilación local sin `COMMIT`, el valor es `desconocido` y la app sigue funcionando.
+
+Esta mejora se incorpora después de las entregas originales; sus tags conservan el estado histórico.
+
 ## Releases
 
 Cada trabajo práctico tiene una release asociada para dejar marcado el estado del repositorio correspondiente a esa entrega.

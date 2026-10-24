@@ -1,6 +1,7 @@
 package tests
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -28,6 +29,10 @@ func testDB(t *testing.T) (*gorm.DB, sqlmock.Sqlmock) {
 }
 
 func TestSaludConfirmaConexionConBaseDeDatos(t *testing.T) {
+	commitAnterior := handlers.BuildCommit
+	handlers.BuildCommit = "0123456789abcdef0123456789abcdef01234567"
+	t.Cleanup(func() { handlers.BuildCommit = commitAnterior })
+
 	db, mock := testDB(t)
 	mock.ExpectPing()
 	router := handlers.NewRouter(&handlers.Handler{DB: db, JWTSecret: "test-secret"})
@@ -39,8 +44,18 @@ func TestSaludConfirmaConexionConBaseDeDatos(t *testing.T) {
 	if response.Code != http.StatusOK {
 		t.Fatalf("status = %d, body = %s", response.Code, response.Body.String())
 	}
-	if response.Body.String() != "{\"status\":\"healthy\"}" {
-		t.Fatalf("cuerpo de respuesta inesperado: %s", response.Body.String())
+	var body struct {
+		Status string `json:"status"`
+		Commit string `json:"commit"`
+	}
+	if err := json.Unmarshal(response.Body.Bytes(), &body); err != nil {
+		t.Fatal(err)
+	}
+	if body.Status != "healthy" || body.Commit != handlers.BuildCommit {
+		t.Fatalf("la salud debe informar el commit del binario: %+v", body)
+	}
+	if response.Header().Get("Cache-Control") != "no-store" {
+		t.Fatal("la respuesta de salud no debe quedar en caché")
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Fatal(err)
