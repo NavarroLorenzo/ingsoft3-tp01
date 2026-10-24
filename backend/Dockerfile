@@ -11,7 +11,11 @@ RUN go mod download
 COPY . .
 
 # Compila la aplicación en modo producción
-RUN CGO_ENABLED=0 GOOS=linux go build -o /app/publish/gestor-gastos-api ./cmd/api
+# El commit queda dentro del binario; una variable de Render no puede reemplazarlo.
+ARG COMMIT=desconocido
+RUN CGO_ENABLED=0 GOOS=linux go build \
+    -ldflags "-X gestor-gastos/backend/internal/handlers.BuildCommit=${COMMIT}" \
+    -o /app/publish/gestor-gastos-api ./cmd/api
 
 # ---- Etapa 2: tests y cobertura (reutiliza el SDK y las dependencias) ----
 FROM build AS test

@@ -6,7 +6,12 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// BuildCommit identifica el código del binario; Docker lo fija al compilar.
+// El valor local permite seguir usando Compose sin pasar argumentos de build.
+var BuildCommit = "desconocido"
+
 func (h *Handler) Health(c *gin.Context) {
+	c.Header("Cache-Control", "no-store")
 	if h.DB == nil {
 		writeError(c, http.StatusServiceUnavailable, "El servicio no está saludable.")
 		return
@@ -16,5 +21,5 @@ func (h *Handler) Health(c *gin.Context) {
 		writeError(c, http.StatusServiceUnavailable, "El servicio no está saludable.")
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"status": "healthy"})
+	c.JSON(http.StatusOK, gin.H{"status": "healthy", "commit": BuildCommit})
 }
