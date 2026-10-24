@@ -474,7 +474,7 @@ QA y PROD ejecutan las imágenes de GHCR identificadas por el SHA del commit. Tr
 
 Dependabot, CodeQL y push protection protegen el repositorio. UptimeRobot comprobó una caída y recuperación de PROD, y quedó pausado. Sentry registra errores y tiempos en backend y frontend; el [issue #66](https://github.com/NavarroLorenzo/ingsoft3-tp01/issues/66) lleva un dato observado al tablero del TP3.
 
-**Release:** [v9.0.0](https://github.com/NavarroLorenzo/ingsoft3-tp01/releases/tag/v9.0.0). Los cambios de mantenimiento posteriores se documentan por separado en `decisiones.md` y no mueven ese cierre histórico.
+**Release:** [v9.0.0](https://github.com/NavarroLorenzo/ingsoft3-tp01/releases/tag/v9.0.0). Por decisión del autor del 24/10/2026, esta release se actualiza para incluir el mantenimiento y la verificación de versiones desplegadas. El cierre original `e903efd` y la secuencia de cambios siguen documentados en `decisiones.md`.
 
 ---
 
@@ -486,7 +486,7 @@ En Actions, abrir `deploy-qa` o `deploy-prod` → **Esperar y verificar la versi
 
 También se puede consultar [backend PROD /health](https://ingsoft3-api-prod.onrender.com/health) y [frontend PROD /version.json](https://ingsoft3-front-prod.onrender.com/version.json) y comparar `commit` con el SHA de Actions. Esto identifica el código incorporado a las imágenes; Events y GHCR permiten revisar además el despliegue y sus imágenes. En una compilación local sin `COMMIT`, el valor es `desconocido` y la app sigue funcionando.
 
-Esta mejora se incorpora después de las entregas originales; sus tags conservan el estado histórico.
+Esta mejora se incorpora después de las entregas originales y se incluye en la actualización de `v9.0.0` solicitada por el autor. Los tags de TP5–TP8 conservan su estado histórico.
 
 ## Releases
 
