@@ -201,31 +201,37 @@ Agregué etiquetas OCI en ambos Dockerfiles con la URL del repositorio. Esto vin
 
 # Decisiones — TP5
 
-Las cantidades y mediciones de esta sección describen el cierre del TP5. Los cambios y mediciones posteriores se registran en los TP siguientes y en el mantenimiento; no reemplazan los resultados históricos de sus corridas.
+Estos números son los del cierre del TP5. Más adelante fui cambiando la app y las pruebas; esos resultados están contados en los TP siguientes y en el mantenimiento.
 
 ## Lógica elegida para testear
 
-Elegí las reglas donde un error afecta directamente a los gastos o a los datos de otra persona: validación de montos, fechas, categorías y registro; inicio de sesión; filtros; acceso a gastos; y borrado de categorías con gastos asociados.
+Elegí testear las reglas donde más se nota un error en Cent: montos, fechas, categorías, registro, login, filtros y borrado de categorías con gastos. También puse atención en que un usuario no pueda acceder a los gastos de otro.
 
-En backend se cubren casos de borde como monto `0`, monto negativo, más de dos decimales, descripción corta, fecha bisiesta y fechas inexistentes. También se comprueba que un gasto de otro usuario no pueda verse: la consulta tiene que seguir filtrando por `usuario_id`.
+En el backend probé bordes como monto `0`, un monto negativo, más de dos decimales, una descripción corta, una fecha bisiesta y fechas que no existen. Para los gastos ajenos, la consulta tiene que seguir filtrando por `usuario_id`: si saco ese filtro, quiero que una prueba me avise.
 
-En frontend las reglas que importan se mantienen en utilidades y servicios, sin depender de la pantalla. Por ejemplo, la validación de categorías se sacó del componente y quedó en `validarCategoria`, que se puede probar directamente.
+En el front dejé las reglas en utilidades y servicios, separadas de la pantalla. Por ejemplo, saqué la validación de categorías del componente y la dejé en `validarCategoria`. Así puedo probar la regla directamente.
+
+Me apoyé en la pirámide de testing: muchas pruebas chicas y rápidas sobre las reglas, y después pocas pruebas de integración y E2E para los recorridos completos del TP7.
 
 ## Suite, parametrización y mocks
 
-En backend quedaron **35 funciones de test en total**, de las cuales **19 están en `tp5_quality_test.go`**, además de los casos que se prueban dentro de las tablas. Superan el mínimo de ocho porque cubren validaciones, autenticación, categorías, gastos, resumen, healthcheck y el formato JSON de una fecha. Todos siguen la idea de preparar datos, ejecutar la regla o el handler y comprobar un resultado concreto.
+En el backend quedaron **35 funciones de test en total**, **19 en `tp5_quality_test.go`**, más los casos de las tablas. Superé el mínimo de ocho porque quería cubrir validaciones, autenticación, categorías, gastos, resumen, healthcheck y el JSON de una fecha. La idea en cada prueba es la misma: preparar algo, ejecutarlo y comprobar un resultado concreto.
 
-Separé algunos tests que antes mezclaban registro, inicio de sesión y acceso a gastos. Por eso aumentó la cantidad de funciones, aunque esos casos ya se probaban: ahora, si algo falla, es más fácil ver qué comportamiento se rompió. También dejé los nombres de las pruebas en español para entender mejor qué comprueba cada una.
+AAA es esa separación en tres pasos. En [la prueba de contraseña vacía](backend/tests/tp5_quality_test.go#L63), Arrange prepara un registro válido salvo la contraseña, Act llama a `ValidateRegister` y Assert comprueba el error y su mensaje. Así puedo señalar qué parte de la prueba hace cada cosa.
+
+Separé algunos tests que mezclaban registro, login y acceso a gastos. Aumentó la cantidad de funciones, pero esos casos ya se probaban. Ahora, cuando falla uno, es más fácil ubicar qué comportamiento se rompió. También les puse nombres en español para entender qué comprueba cada prueba.
 
 Para no repetir tests parecidos uso tablas de casos y `t.Run()`. Por ejemplo, la misma regla de monto se prueba con `0`, un número negativo y uno con tres decimales. Si se cambiara el borde de la validación, alguno de esos casos fallaría.
 
-El mock obligatorio del backend se hace con `go-sqlmock`. Simula PostgreSQL y, además de devolver filas preparadas, verifica la interacción esperada. En las pruebas de consulta, edición y borrado de un gasto ajeno se espera que se usen el gasto `99` y el usuario `2`; si se eliminara el filtro por usuario, el test queda rojo. En el resumen también se comprueba que las consultas reciban el usuario de la sesión.
+Para el mock del backend usé `go-sqlmock`. Me devuelve filas preparadas y también comprueba la consulta que hice. Al consultar, editar o borrar un gasto ajeno, espero el gasto `99` y el usuario `2`; si saco el filtro por usuario, el test falla. En el resumen también compruebo que la consulta reciba el usuario de la sesión.
 
-En frontend quedaron **34 tests**: 16 de utilidades y validaciones, 15 del cliente HTTP, 2 del servicio de inicio de sesión y 1 de almacenamiento de sesión. La guía pide como mínimo cuatro; la cantidad final sale de los caminos de las reglas que decidí cubrir, no de intentar llegar a un número fijo.
+En el front quedaron **34 tests**: 16 de utilidades y validaciones, 15 del cliente HTTP, 2 del servicio de inicio de sesión y 1 de almacenamiento de sesión. El mínimo era cuatro. Llegué a esa cantidad por los caminos que quería probar, no por buscar un número de tests.
 
 Uso `it.each()` para fechas, gastos y categorías, y casos de error como fecha inexistente, monto inválido, categoría faltante o credenciales rechazadas. Para los mocks uso `vi.fn()`: en `iniciarSesion` reemplazo la autenticación y el guardado de sesión; en el cliente HTTP reemplazo `fetch`. De esa forma no se usa red, backend ni `localStorage` reales. Todo el frontend se prueba con Vitest en entorno `node`, sin DOM.
 
-En las pruebas del cliente HTTP compruebo la dirección, el método, la autorización y los datos enviados. Por ejemplo, al crear un gasto con monto `100`, el test verifica que ese mismo monto llegue en el cuerpo JSON de la petición. Así también se detectaría si la llamada llega a la dirección correcta pero manda datos equivocados.
+Un stub me da una respuesta preparada; un mock también me permite comprobar cómo se usó. En [la prueba de login](frontend/tests/iniciarSesion.test.js#L5), `vi.fn().mockResolvedValue(...)` devuelve una sesión y después reviso con qué datos se llamó a autenticar y guardar. Ahí el doble cumple los dos papeles.
+
+En el cliente HTTP no me alcanza con comprobar que se hizo una llamada. Miro la URL, el método, la autorización y los datos enviados. Por ejemplo, si creo un gasto con monto `100`, compruebo que ese mismo monto viaje en el JSON. Así detectaría una llamada que llega al lugar correcto pero manda datos equivocados.
 
 ## Herramientas equivalentes en este stack
 
@@ -239,33 +245,35 @@ En las pruebas del cliente HTTP compruebo la dirección, el método, la autoriza
 
 ## Cobertura y quality gate
 
-El backend da **61,3% de sentencias**, por eso el umbral quedó en **60%**. Está anclado en la medición actual: deja un margen chico, pero rechaza una caída real de cobertura.
+Al cerrar el TP5, el backend daba **61,3% de sentencias**. Dejé el umbral en **60%** para tener un margen chico y que una caída real de cobertura frenara el build. El límite se compara en [run-tests.sh](backend/scripts/run-tests.sh).
 
-Go no mide cobertura de ramas con su herramienta estándar; `go test -cover` mide sentencias. El Summary del backend lo informa de forma explícita en lugar de inventar un número de ramas que la herramienta no entrega.
+Líneas y ramas no cuentan lo mismo: una línea con un `if` puede haberse ejecutado sin probar sus dos resultados. En Go, `go test -cover` mide sentencias y no informa cobertura de ramas. Lo aclaré en el Summary, en vez de poner un porcentaje que la herramienta no entrega.
 
-En frontend el alcance elegido da **84,14% de sentencias**, **82,35% de ramas**, **86,66% de funciones** y **87,32% de líneas**. Elegí un umbral de **80%** para las cuatro métricas: está debajo del resultado actual, especialmente del 82,35% de ramas, pero suficientemente cerca como para bloquear una regla o un camino nuevo que entre sin pruebas.
+En el front medí **84,14% de sentencias**, **82,35% de ramas**, **86,66% de funciones** y **87,32% de líneas**. Dejé **80%** para las cuatro métricas en [vite.config.js](frontend/vite.config.js). Está cerca del resultado, sobre todo del 82,35% de ramas, y me sirve para frenar una regla nueva que entre sin pruebas.
 
-La cobertura muestra qué código se ejecutó, no que todos los asserts sean buenos; por eso las pruebas verifican valores, mensajes, códigos HTTP y llamadas a los mocks, no solo que una función haya corrido.
+Un coverage alto me dice que el código se ejecutó. Para saber si las pruebas sirven, también tengo que mirar qué afirman: valores, mensajes, códigos HTTP y llamadas a los mocks. Por eso no me quedé con probar que una función corriera sin romperse.
 
 Un contraejemplo propio sería un test que sólo ejecute `validarCategoria("A")` sin ningún `expect`: suma cobertura aunque la función deje de rechazar una categoría de una sola letra. Es un ejemplo conceptual, no un test agregado a la suite. Mi parametrizado sí comprueba que ese caso devuelva el error de nombre y que dos letras se acepten; si falta ese assert, ejecutar la rama no demuestra la regla.
 
+El análisis estático mira el código sin ejecutar la app como lo hace un test. Lo usamos más adelante con CodeQL para buscar patrones de riesgo. No reemplaza estas pruebas: leer el código y comprobar un caso concreto responden preguntas distintas.
+
 ## Alcance excluido de la cobertura
 
-En backend no entran `cmd/api`, porque solamente cablea variables de entorno, router y servidor, ni `internal/database`, porque concentra la conexión, migración y seed de PostgreSQL. Sí entran handlers, middleware y modelos con comportamiento: ahí están las reglas de acceso y el contrato JSON.
+Dejé afuera del backend `cmd/api`, donde conecto las variables, el router y el servidor, e `internal/database`, donde están la conexión, migración y seed de PostgreSQL. Sí cuento handlers, middleware y modelos con comportamiento, porque ahí están las reglas de acceso y el contrato JSON.
 
-En frontend entran `src/api`, `src/services` y `src/utils`. Quedan afuera `main.jsx`, `App.jsx` y los componentes visuales porque son wiring y presentación; las reglas que antes vivían dentro de `Categorias.jsx` se extrajeron a `validarCategoria`, que sí está incluida. Las pruebas de interacción con la interfaz se abordarán como E2E, no como tests unitarios con DOM.
+En el front cuento `src/api`, `src/services` y `src/utils`. Dejé afuera `main.jsx`, `App.jsx` y los componentes visuales. Para eso primero saqué las reglas de `Categorias.jsx` y las pasé a `validarCategoria`, que sí entra en la cuenta. Las interacciones con la pantalla las pruebo después con E2E, no con unitarios que necesiten DOM.
 
 ## Ejercicio del camino sin cubrir
 
 Al revisar el reporte del backend encontré una rama sin recorrer en la validación de registro: el caso en que la contraseña está vacía. La decisión concreta está en [backend/internal/validation/validation.go, líneas 73–74 del código revisado](https://github.com/NavarroLorenzo/ingsoft3-tp01/blob/807ea0288eeba5e393c25797a82ee67243a640ee/backend/internal/validation/validation.go#L73), `if length == 0`, llamada desde `ValidateRegister` en la línea 43. La entrada concreta fue un usuario con nombre y email válidos, pero con `Password: ""`. Go informa sentencias, no un porcentaje de ramas; identifico aquí el camino del código, no una métrica que Go no entrega.
 
-Decidí agregar `TestRegistroRechazaContrasenaVacia`. El test comprueba que se devuelva el mensaje correcto cuando falta la contraseña. Con ese caso se cubre una validación que antes no se ejecutaba y se deja documentado qué camino apareció al revisar el reporte.
+Agregué `TestRegistroRechazaContrasenaVacia` para recorrer ese caso y comprobar el mensaje que devuelve. Me servía cubrir la validación que había encontrado en el reporte y dejar claro qué comportamiento estaba probando.
 
 ## Pipeline y evidencias
 
 ### Prueba local con Docker
 
-El script `scripts/verify-tp5-local.ps1` construye las dos etapas de test y prueba tanto el caso verde como uno con código sin tests. Se debe ejecutar con Docker Desktop antes de subir los cambios para guardar los reportes locales.
+Dejé el script `scripts/verify-tp5-local.ps1` para construir las dos etapas de test y comprobar tanto el verde como el caso con código sin tests. Se corre con Docker Desktop antes de subir los cambios y guarda los reportes locales.
 
 | Caso | Cobertura | Umbral | Salida del contenedor |
 |---|---|---|---|
@@ -274,11 +282,11 @@ El script `scripts/verify-tp5-local.ps1` construye las dos etapas de test y prue
 | Frontend original | 84,14% sentencias; 82,35% ramas; 86,66% funciones; 87,32% líneas | 80% en las cuatro | `0`, aprobado |
 | Frontend con función temporal sin tests | Al menos una métrica queda debajo de 80% | 80% en las cuatro | `1`, rechazado por cobertura |
 
-En el caso rojo, el script comprueba que el código compile y que los tests existentes pasen. El fallo debe ser solamente porque baja la cobertura; no se cambian los límites ni se rompe un test para forzar el rojo. Los HTML y resúmenes de ambos lados se guardan en `.cache/tp5-verification/`.
+En el caso rojo, el código tiene que compilar y los tests existentes tienen que pasar: lo que debe frenarlo es la cobertura. El script comprueba eso sin cambiar los límites ni romper un test para forzar el fallo. Los HTML y resúmenes quedan en `.cache/tp5-verification/`.
 
 ### Prueba en GitHub
 
-Conservo los mismos checks del TP4: `build-backend` y `build-frontend`. Son obligatorios para hacer merge a `main`, así que el freno de calidad no necesita un check nuevo: el mismo pipeline bloquea cuando un test falla o cuando la cobertura baja.
+Conservé los checks del TP4, `build-backend` y `build-frontend`, como obligatorios en `main`. No necesité otro check para el quality gate: esos mismos jobs fallan si falla una prueba o si la cobertura no llega al límite.
 
 La demostración completa quedó en el [PR #25](https://github.com/NavarroLorenzo/ingsoft3-tp01/pull/25). El [commit `15fe06d`](https://github.com/NavarroLorenzo/ingsoft3-tp01/commit/15fe06df9f4ad526311d7642791e928f9c82c4da) agregó validación de fechas en el código de la app sin agregar tests. En la [corrida roja 36472809700](https://github.com/NavarroLorenzo/ingsoft3-tp01/actions/runs/36472809700), el código compilaba y los **32 tests pasaban**. El check `build-frontend` falló exclusivamente por cobertura: **98,61% líneas, 98,78% sentencias y 98,52% ramas**, menores que el **100%** que se exigía entonces, con **Vitest 4.1.10**. No confundo ese umbral histórico con el 80% elegido después.
 
@@ -292,7 +300,7 @@ Al principio faltaba instalar el paquete de cobertura de Vitest. Lo agregué jun
 
 También tuve que ajustar cómo Go elegía los paquetes para medir porque el primer intento no los encontraba bien.
 
-En el frontend apareció un problema al generar el reporte dentro de Docker: Vitest quería limpiar la misma carpeta que Docker estaba usando para guardar el resultado. Dejé los reportes en una subcarpeta y con eso quedó funcionando.
+En Docker, Vitest quería limpiar la misma carpeta donde montaba el resultado. Lo resolví dejando el reporte en una subcarpeta: pudo limpiar su salida sin intentar borrar el montaje.
 
 ## Uso de IA
 
@@ -302,39 +310,39 @@ Usé ChatGPT/Codex para revisar el código, pensar los casos de prueba y prepara
 
 ## Publicación de imágenes y tipo de entrega
 
-Seguí usando GHCR para las imágenes del backend y del frontend. Cada job construye su etapa de tests, ejecuta las pruebas y controla la cobertura antes de publicar. En un Pull Request se construye la imagen pero no se hace login ni push al registry. Cuando el cambio entra a `main` y el job termina en verde, se publica con un tag `sha-<commit>`. Así puedo relacionar cada imagen con el código que la produjo. Si publicara antes de verificar, encontrar una imagen en GHCR ya no me diría que pasó los tests y el quality gate.
+Seguí usando GHCR para guardar las imágenes del backend y del front. Cada job corre primero sus tests y la cobertura. En un PR construye, pero no hace login ni push al registry. Cuando el cambio entra a `main` y pasa esos controles, publica con `sha-<commit>`. Así, lo que publica el pipeline ya pasó la verificación; si publicara antes, encontrar una imagen en GHCR no me daría esa confianza.
 
-Este flujo es **Continuous Delivery**: el cambio pasa por CI y llega automáticamente a QA, pero para entrar a PROD necesita una aprobación humana. No es Continuous Deployment hasta producción, porque ese último paso no ocurre solo.
+Lo dejé como **Continuous Delivery**: CI verifica el cambio y lo lleva a QA automáticamente, pero PROD espera una aprobación humana. Para que fuera Continuous Deployment hasta producción, ese último paso también tendría que ser automático.
 
 ## QA y PROD
 
-Monté cuatro Web Services Docker en Render: API y frontend para QA, y API y frontend para PROD. Los cuatro tienen **Auto-Deploy en Off**. El pipeline dispara sus deploy hooks; si Render se actualizara solo al recibir un push, el gate de GitHub no controlaría realmente la llegada a producción.
+Creé cuatro Web Services Docker en Render: API y front para QA, y API y front para PROD. Dejé **Auto-Deploy en Off** en los cuatro. Quería que el despliegue lo disparara el pipeline con sus hooks; si Render se actualizara por su cuenta con cada push, la aprobación de GitHub ya no controlaría realmente la llegada a PROD.
 
-Cada backend usa una base PostgreSQL distinta en Neon: `app_qa` o `app_prod`. Elegí Neon porque la defensa es dentro de unos dos meses y la base gratuita de Render se elimina a los 30 días. La conexión usa TLS con `DB_SSLMODE=require`. Para verificar que las bases no se mezclaran, agregué la categoría “SOLO PROD TP6” en `app_prod`: apareció en la app de PROD y no en la de QA.
+Cada backend usa una base distinta en Neon: `app_qa` o `app_prod`. Elegí Neon porque, cuando armé el TP, faltaban unos dos meses para la defensa y la base gratuita de Render se eliminaba a los 30 días. Usé TLS con `DB_SSLMODE=require`. Para comprobar el aislamiento, agregué “SOLO PROD TP6” en `app_prod`: la categoría apareció en PROD y no en QA.
 
-La URL de la API no está fija dentro de la imagen del frontend. Nginx lee `BACKEND_URL` y `DNS_RESOLVER` al iniciar el contenedor; en Render cada frontend recibe la URL de su API y en Compose se usan valores por defecto para la red local. El código de React y la plantilla de Nginx son los mismos para los dos entornos. La configuración que cambia es la dirección del backend; las rutas `/api` y la lógica de la aplicación siguen dentro de la imagen.
+La imagen del front no tiene fija la URL de la API. Nginx recibe `BACKEND_URL` y `DNS_RESOLVER` cuando arranca: en Render apunta a la API de su entorno y en Compose usa los valores de la red local. El código de React, la plantilla de Nginx, las rutas `/api` y la lógica viajan en la misma imagen; lo que cambia es la dirección del backend.
 
-En GitHub creé los environments `qa` y `production`. Los hooks de QA están como secrets de `qa` y los de PROD como secrets de `production`, para que cada job use solamente los servicios de su entorno. Las contraseñas de Neon y `JWT_SECRET` están cargados en Render, fuera de las imágenes y del repositorio.
+En GitHub armé los environments `qa` y `production`. Guardé los hooks de QA en los secrets de `qa` y los de PROD en `production`, para que cada job use los servicios que le corresponden. Las contraseñas de Neon y `JWT_SECRET` quedaron en Render, fuera de las imágenes y del repo.
 
 ## Promoción y aprobación
 
-El workflow usa `needs` para que `deploy-qa` espere a los dos jobs de build. Además, ese job tiene `if` para correr solo en `main`: un PR verifica, pero no despliega. Si QA responde, `deploy-prod` puede llegar al environment `production`, donde espera la aprobación requerida. Ahí se usan los hooks de PROD. En los hooks paso `&ref=$GITHUB_SHA`, así Render reconstruye el commit de la corrida y no una punta de `main` que pudo cambiar mientras se esperaba la aprobación.
+Encadené los jobs con `needs`: `deploy-qa` espera los dos builds y su `if` lo limita a `main`. Por eso un PR verifica y no despliega. Después de QA, `deploy-prod` llega al environment `production` y espera la aprobación antes de usar sus hooks. En esta etapa del TP6 pasaba `&ref=$GITHUB_SHA`: Render reconstruía ese commit, aunque `main` hubiera avanzado mientras esperaba la aprobación.
 
 Antes de aprobar miro que backend y frontend hayan pasado tests y cobertura, que el deploy y el smoke de QA estén verdes, qué commit se está promoviendo y qué cambió. Probé también el rechazo: en la [corrida del PR #35 ya integrado](https://github.com/NavarroLorenzo/ingsoft3-tp01/actions/runs/37231181648) dejé un motivo concreto por el primer intento del smoke de QA que agotó sus 10 segundos. QA terminó bien tras reintentar, pero ese commit no pasó a PROD. Después aprobé la [corrida del PR #36 integrado](https://github.com/NavarroLorenzo/ingsoft3-tp01/actions/runs/37232036592): el texto nuevo apareció primero en QA y recién después de la aprobación en PROD.
 
 El smoke prueba que `/health` puede consultar PostgreSQL, que carga el frontend y que el proxy `/api/categorias` llega al backend: sin sesión devuelve `401`, que en este caso es lo esperado. Reintenta porque los servicios gratuitos pueden estar dormidos y tardar en responder. **No prueba todavía qué commit está sirviendo**: Render acepta el hook antes de terminar el build y la URL puede responder con la versión anterior. Para cerrar esa diferencia habría que exponer la versión en la app y comparar el SHA recibido con el de la corrida.
 
-Render vuelve a construir desde el repositorio. Aunque GHCR guarda las imágenes que pasaron CI, no puedo afirmar que PROD esté ejecutando exactamente esos mismos bytes o digest. En este TP el `ref` asegura el commit elegido para reconstruir; promover la misma imagen ya construida sería una garantía más fuerte.
+En el TP6 Render volvía a construir desde el repo. GHCR guardaba las imágenes verificadas, pero eso no me permitía asegurar que PROD ejecutara esos mismos bytes o digest. Con `ref` elegía el commit; me faltaba promover la imagen ya construida. Eso lo cambié en el TP7.
 
 ## Free tier, release y rollback
 
-En el plan gratuito de Render los servicios se duermen por inactividad. Eso puede agregar unos 50 segundos o más al primer pedido, así que los smokes tienen reintentos y tiempo límite. Tampoco conviene mantener cuatro servicios despiertos con pings constantes: las 750 horas gratis son del workspace completo. Además, cada deploy reconstruye en Render y consume minutos de build. Para la defensa tengo que comprobar que las cuatro URLs sigan disponibles y dejar tiempo para despertarlas.
+Cuando preparé el TP6, el free tier de Render dormía los servicios por inactividad y el primer pedido podía tardar unos 50 segundos o más. Por eso puse reintentos y un tiempo límite en los smokes. Las 750 horas eran del workspace completo: mantener los cuatro servicios despiertos con pings gastaba la cuota. Además, Render reconstruía en cada deploy y consumía minutos de build. Para la defensa tengo que dejar margen para despertar las cuatro URLs.
 
 Publiqué la [release `v6.0.0` con notas](https://github.com/NavarroLorenzo/ingsoft3-tp01/releases/tag/v6.0.0). El tag apunta al commit que efectivamente se desplegó en PROD, `1cb00ed371359b91d4febea39cb062e22443b98a`, no simplemente a lo último de `main`.
 
-Hoy Render despliega un servicio por entorno, así que no tengo un blue-green real. Para una producción con usuarios elegiría **blue-green**: levantaría la nueva versión aparte, probaría su salud y cambiaría el tráfico recién cuando esté lista. Cuesta casi el doble de infraestructura, pero permite volver rápido a la versión anterior si falla. Antes de usarlo en serio me faltarían métricas de errores y latencia por versión, además de comprobar que las migraciones de la base sean compatibles con las dos versiones durante el cambio.
+Con un servicio por entorno no tengo un blue-green real. Si esta app tuviera usuarios en producción, elegiría **blue-green**: levantar la versión nueva aparte, probarla y recién ahí cambiar el tráfico. Me costaría casi el doble de infraestructura, pero podría volver rápido a la versión anterior. Para hacerlo en serio también necesitaría medir errores y latencia por versión y comprobar que las migraciones de la base sean compatibles con las dos versiones durante el cambio.
 
-Mi rollback actual es más simple: identifico el último commit bueno en Deployments o en la release, llamo los hooks de los dos servicios de PROD con `&ref=<sha-bueno>` y espero a que **ambos** figuren `Live` con ese commit en Render → Deploys. Después pruebo la app. No usaría `v5.0.0` para este ejercicio porque es anterior a la configuración de Nginx que necesita Render. Este camino manual usa los hooks de Render para volver rápido a una versión conocida; no pasa por el gate de aprobación de GitHub, por eso reservo esos hooks para una recuperación y no para los despliegues normales.
+El rollback que usé en TP6 era más simple: buscar el último commit bueno en Deployments o en la release, llamar los hooks de los dos servicios de PROD con `&ref=<sha-bueno>` y esperar a que **ambos** figuraran `Live` con ese commit en Render → Deploys. Después probaba la app. No elegí `v5.0.0` para ese ejercicio porque era anterior a la configuración de Nginx que necesita Render. Ese camino manual no pasaba por la aprobación de GitHub: lo reservé para recuperar una versión conocida, no para los despliegues normales. En TP7 pasé a elegir imágenes ya publicadas.
 
 Probé el rollback después de integrar y aprobar el [PR #37](https://github.com/NavarroLorenzo/ingsoft3-tp01/pull/37), que dejó visible “Prueba de rollback TP6” en PROD con el commit `a992dfd61497634c340455bf5390b0f2e5374464`. Disparé los hooks de API y frontend PROD con el SHA de `v6.0.0`, `1cb00ed371359b91d4febea39cb062e22443b98a`. El primer hook se llamó a las **18:46:37**; en Render → Deploys, la API quedó `Live` a las **18:47:01** y el frontend a las **18:47:06**. Los dos muestran el commit `1cb00ed`, así que el tiempo medido hasta tener ambos servicios en la versión anterior fue de **29 segundos**. Render informa 23,8 s para la API y 27,8 s para el frontend. El cronómetro de PowerShell marcó 121 s porque ejecuté la línea final bastante después de verlos `Live`; para medir el despliegue tomé los horarios de Render. Comprobé que PROD volvió a mostrar “Tus gastos, más claros” y QA conservó “Prueba de rollback TP6”. Volver el código atrás no revierte los datos ni una migración de base ya aplicada.
 
@@ -350,19 +358,19 @@ Usé ChatGPT y Codex para entender la guía, revisar el workflow, preparar cambi
 
 ## La imagen como unidad de entrega
 
-En el TP6 publicaba imágenes en GHCR, pero Render volvía a construir desde GitHub. Aunque elegía el mismo commit con `ref`, otra construcción podía resolver una imagen base distinta y producir otros archivos. Por ejemplo, el frontend usa `node:22-alpine` y `nginx:1.29-alpine`: sus etiquetas pueden actualizarse entre CI y el build de Render.
+En el TP6 elegía el commit con `ref`, pero Render hacía otra construcción desde GitHub. Ese build podía salir distinto al de CI: por ejemplo, `node:22-alpine` y `nginx:1.29-alpine` son etiquetas que pueden actualizarse entre una construcción y otra.
 
-En este TP cambié la fuente de los cuatro servicios existentes a **Existing Image**. Conservé sus URLs, variables y hooks; no creé servicios nuevos. Render ejecuta las imágenes runtime publicadas por CI. QA las prueba y PROD recibe esas mismas referencias, sin reconstruir. Ése es el sentido de **build once, deploy many** en mi aplicación.
+Pasé los cuatro servicios existentes a **Existing Image**, conservando sus URLs, variables y hooks. Ahora Render ejecuta las imágenes runtime que publicó CI; QA las prueba y PROD recibe esas mismas referencias, sin reconstruir. Eso es **build once, deploy many** en mi app: construir una vez y usar esa imagen en los dos entornos.
 
 ## Etiquetas y publicación
 
-Publico backend y frontend con `sha-<los 40 caracteres del commit de main>`. Los dos packages usan el mismo SHA, aunque cada imagen tiene su propio digest. No publico `latest` porque ese nombre se movería en cada publicación y una aprobación pendiente podría terminar eligiendo otra versión.
+Elegí `sha-<los 40 caracteres del commit de main>` para publicar backend y front. Los dos packages llevan el mismo SHA, aunque cada imagen tiene su digest. No publico `latest` porque se va moviendo: una aprobación que quedó esperando podría terminar eligiendo una versión distinta.
 
-El SHA permite relacionar la imagen con el código; el digest identifica su contenido. Un tag del registry puede sobrescribirse: no es inmutable sólo por llamarse `sha-...`. Por eso no lo muevo a otra versión ni reconstruyo para promover. Si alguien lo sobrescribiera, la referencia podría dejar de representar lo que QA probó; comparar el digest permite detectar esa diferencia.
+El SHA me lleva al código; el digest identifica el contenido de la imagen. Llamar a un tag `sha-...` no lo vuelve inmutable: se puede pisar con otro push. Por eso no lo muevo ni reconstruyo al promover. Si alguien lo sobrescribiera, comparar el digest permitiría detectar que cambió lo que QA había probado.
 
-Configuré inicialmente Render con `sha-030983d074bb1859343a4b9f400b2994232d9aae`. Esa referencia queda como punto de partida en Settings; cada corrida elige su imagen con `imgURL`. El encabezado puede mostrar el tag inicial mientras el deploy reciente ya ejecuta otro.
+La primera imagen que configuré en Render fue `sha-030983d074bb1859343a4b9f400b2994232d9aae`. Esa referencia puede seguir apareciendo en Settings, aunque el deploy más reciente use otra. Para elegir la imagen de cada corrida uso `imgURL`; no me guío sólo por el encabezado del servicio.
 
-La publicación automática usa `GITHUB_TOKEN` y `packages: write`, después de tests y cobertura. En un PR no hace login ni push a GHCR. Los paquetes permiten escritura a Actions y a mi cuenta; no hay un token personal escrito en el YAML. Comprobé el pull de las dos imágenes públicas sin credenciales, también para el commit del arreglo, con arquitectura `linux/amd64`.
+Para publicar desde Actions uso `GITHUB_TOKEN` con `packages: write`, después de tests y cobertura. En un PR no hago login ni push a GHCR. Pueden escribir los paquetes Actions y mi cuenta; no puse un token personal en el YAML. También comprobé que las dos imágenes públicas, incluidas las del arreglo, se pudieran bajar sin credenciales para `linux/amd64`.
 
 ## Promoción y comprobación de la imagen
 
@@ -384,9 +392,9 @@ Las dos suites usan Playwright, pero recorren caminos distintos:
 
 Elegí la edición como tercer caso porque corregir un gasto y encontrar el cambio al volver a entrar es una operación habitual. Si el monto se muestra actualizado pero no quedó guardado, la persona que usa el gestor me avisaría cuando recargue o consulte su resumen.
 
-La integración llama directamente a la API pública QA con el fixture `request`, sin navegador ni mocks. Es **integración amplia**: incluye servidor desplegado, autenticación, consultas y driver de PostgreSQL real en Neon. Gana cobertura sobre la combinación real y pierde velocidad y aislamiento; depende de red y disponibilidad. Una integración estrecha podría probar una parte con sus dependencias inmediatas bajo más control, pero no comprobaría por sí sola esta instalación de QA.
+Hago la integración contra la API pública de QA con el fixture `request`, sin navegador ni mocks. Es **integración amplia**: prueba el servidor desplegado, la autenticación y PostgreSQL real en Neon con su driver. Me sirve para probar esa combinación, aunque tarda más y depende de la red y de que QA esté disponible. Una integración estrecha daría más control sobre una parte, pero no probaría por sí sola esta instalación completa.
 
-La E2E además recorre React, el formulario, Nginx y la respuesta que ve el usuario. Uso roles, labels y la fila del gasto propio; no intercepto ni invento respuestas HTTP. Conservé la pirámide: los unitarios del TP5 siguen cubriendo muchas reglas y casos de borde con dobles. No repetí cada fecha o monto inválido en las suites más lentas. Tampoco puse estilos o detalles decorativos en E2E, ni comprobaciones de la pantalla en integración.
+La E2E agrega React, el formulario, Nginx y lo que termina viendo el usuario. Busco elementos por roles y labels y compruebo la fila del gasto propio, sin inventar respuestas HTTP. Dejé muchos bordes para los unitarios del TP5 y pocos recorridos completos en estas suites más lentas: ésa es la pirámide que usé. No repetí cada monto o fecha inválida, ni puse comprobaciones de estilos en E2E o de pantallas en integración.
 
 ## Datos de prueba y QA compartido
 
@@ -402,7 +410,7 @@ Para demostrar el freno cambié **el frontend**: el alta mandaba `detalle` en ve
 
 En la corrida roja, integración aprobó sus tres pruebas y E2E falló en dos. Los reportes mostraron que el gasto no aparecía; en Retry #1, la traza Network mostró `POST /api/gastos` sin `descripcion` y respuesta 400: “La descripción es obligatoria”. El caso de edición también falló durante su alta previa; la validación de espacios pasó.
 
-El par **integración verde / E2E roja** indicó que los caminos probados de API y base funcionaban, pero el frontend usaba mal el contrato. Si hubiera roto la API, integración habría fallado y E2E no habría arrancado por su `needs`. El gate omitió PROD sin pedir aprobación y conservó la versión buena anterior.
+Con **integración verde / E2E roja** ya tenía una pista: los caminos probados de API y base funcionaban, pero el front estaba usando mal el contrato. Si rompía la API, integración fallaba primero y E2E no arrancaba por su `needs`. PROD quedó omitido, sin pedir aprobación, y siguió con la versión buena anterior.
 
 Restauré `descripcion` en otro PR y mantuve los specs. La corrida posterior aprobó los tres flujos E2E, llegó a la revisión humana y la aprobé. Los logs de QA y PROD muestran `sha-a4bbf19d21a4dfce28fd90d833aeb7b1376352e8`; el deployment de production terminó en success sobre ese commit. El gate protege los recorridos elegidos, no todos los errores posibles ni una migración incompatible que no ejerciten las pruebas.
 
@@ -410,7 +418,7 @@ Restauré `descripcion` en otro PR y mantuve los specs. La corrida posterior apr
 
 La configuración usa 60 segundos por test, 15 por aserción, un worker y un retry. Las acciones y aserciones esperan condiciones observables; no agregué sleeps fijos ni tests que se salteen si QA está dormido. Guardo screenshot al fallar y trace en el primer retry, y publico ambos reportes aunque haya un fallo.
 
-Un test **flaky** falla y luego pasa sin cambiar el código. En la corrida del arreglo ocurrió en integración: el login recibió 502 en el primer intento y pasó en el retry; el resumen fue `2 passed` y `1 flaky`. No confirmé con logs de Render qué produjo ese 502. E2E dio `3 passed`, sin flaky ni skips. El retry permite recuperarse de un fallo transitorio, pero no borra ese resultado ni vuelve estable la prueba.
+Un test **flaky** falla y después pasa sin cambiar el código. Me pasó en integración durante el arreglo: el login recibió 502 y pasó en el retry, así que el resultado fue `2 passed` y `1 flaky`. No confirmé la causa de ese 502 con los logs de Render. E2E dio `3 passed`, sin flaky ni skips. El retry ayudó a seguir, pero no borró ese primer fallo ni volvió estable la prueba.
 
 También agregué una espera de disponibilidad para el usuario: el frontend consulta `/health` al abrirse y antes de login o registro, con límite total de dos minutos. Muestra que está iniciando el servidor y permite reintentar si agota la espera. Sólo repite el GET de salud, no los POST ni las escrituras. Nginx tiene una ruta exacta para `/health` y un timeout de lectura de 120 segundos. Los unitarios del frontend pasaron de 34 a 43 al cubrir esa lógica.
 
@@ -422,7 +430,7 @@ Para cerrar el TP, `v7.0.0` debe nombrar una versión comprobada en PROD. Antes 
 
 Del tag a las imágenes hay un paso: `git rev-list -n1 v7.0.0` devuelve el commit y busco `sha-<ese commit>` en ambos paquetes. La release se crea con `--verify-tag`, para usar el tag existente. El nombre de versión queda en Git y la referencia de despliegue queda en GHCR; no necesito publicar un tag `latest` ni reconstruir para poner nombre a la versión.
 
-La recuperación también pasa a elegir una imagen buena ya publicada, en lugar de reconstruir con el `ref` del TP6. Volver frontend y backend a esa imagen no revierte los datos ni las migraciones de PostgreSQL. La prueba de rollback realizada en TP6 sigue documentada como historial de ese práctico; no hice otra prueba de rollback en TP7.
+Para volver atrás, en TP7 ya elijo una imagen buena que está publicada; no la reconstruyo con el `ref` del TP6. Eso no deshace los datos ni las migraciones de PostgreSQL. La medición del rollback sigue siendo la que hice en TP6; no hice otra prueba de rollback en TP7.
 
 ## Problemas encontrados y uso de IA
 
@@ -436,67 +444,85 @@ Usé ChatGPT/Codex para entender la guía, preparar los cambios locales de hooks
 
 ## Riel y versiones
 
-Elegí Terraform 1.15.8 con `kislerdm/neon` 0.18.0 y `render-oss/render` 1.9.1, como en la guía. Declaré un preprod independiente en `infra/`, con proyecto, rol y base en Neon, más API y frontend en Render usando las imágenes del TP7. La conexión de Go se arma con los `DB_*` derivados de Neon y el frontend referencia la URL de su propia API. Las claves de los providers se cargan en la terminal; Render genera la clave de login. El estado queda local e ignorado en Git; `.terraform.lock.hcl` sí se versiona.
+Para este TP elegí Terraform 1.15.8 y fijé `kislerdm/neon` 0.18.0 y `render-oss/render` 1.9.1, como en la guía. En `infra/` dejé un preprod separado: proyecto, rol y base en Neon, más API y front en Render con las imágenes del TP7. Los `DB_*` de Go salen de Neon y el front toma la URL de su propia API. Las claves de los providers se cargan en la terminal y Render genera la clave de login. Dejé el estado local e ignorado en Git; `.terraform.lock.hcl` sí se sube.
+
+## Qué automatiza Terraform
+
+Lo declarativo es escribir el estado al que quiero llegar, en vez de una lista de órdenes para crear cada cosa a mano. Terraform compara eso con lo que administra y arma el plan. Si aplico dos veces sin cambios ni drift, la segunda debería decir `No changes`: ésa es la idempotencia.
+
+Mi código administra sólo preprod. QA y PROD, las cuentas, los environments y secrets de GitHub y las claves cargadas en la terminal siguen preparados por fuera. No importé esos servicios al estado.
+
+El estado está en `infra/terraform.tfstate`: relaciona lo declarado con los IDs reales y puede guardar contraseñas, por eso no lo subo. El lockfile fija las versiones de los providers; no es ese estado. En [main.tf](infra/main.tf) las referencias marcan el orden proyecto → rol → base → API → front; al destruir se recorre al revés.
+
+El drift es una diferencia entre lo declarado y los recursos administrados. En mi prueba, borrar una base hizo que plan propusiera recrearla; una `base_intrusa` creada fuera del código no apareció. Terraform no vigila toda mi cuenta.
 
 ## Problemas encontrados
 
-Neon rechazó el primer apply porque faltaba `org_id`; agregué una variable obligatoria y cargué el ID de la organización desde la terminal. Render rechazó el owner ID incompleto; consulté `/v1/owners` y usé el ID completo del workspace, con prefijo `tea-`. También hubo demoras iniciales en los chequeos de salud que se resolvieron al reintentar. En la recreación cambió el host de Neon: las referencias actualizaron la conexión sin copiar valores nuevos.
+El primer apply falló porque Neon necesitaba `org_id`: agregué la variable obligatoria y cargué el ID de mi organización desde la terminal. Después Render rechazó el owner ID incompleto; lo consulté en `/v1/owners` y usé el ID entero del workspace, con prefijo `tea-`. También tuve que esperar y reintentar los primeros chequeos de salud. Al recrear preprod cambió el host de Neon, y las referencias actualizaron la conexión sin que tuviera que copiarlo a mano.
 
 ## Uso de IA y verificación
 
-Usé ChatGPT/Codex para entender la guía, preparar y comentar el HCL, analizar errores y redactar esta sección. Verifiqué formato y configuración, leí los planes y ejecuté los comandos de Terraform. Probé idempotencia, inspeccioné el estado, provoqué y reparé drift, destruí y recreé preprod y comprobé la app con datos. También comprobé el rechazo de `prevent_destroy` y retiré la protección temporal. QA y PROD siguieron disponibles. Los commits, pushes, PR y aprobaciones los hago yo.
+Usé ChatGPT/Codex para entender la guía, preparar y comentar el HCL, revisar errores y redactar esta sección. Después comprobé formato y configuración, leí los planes y ejecuté Terraform. Probé idempotencia, miré el estado, provoqué y reparé drift, destruí y recreé preprod y probé la app con datos. También vi el rechazo de `prevent_destroy` y saqué esa protección temporal. QA y PROD siguieron disponibles. Los commits, pushes, PR y aprobaciones de esa etapa los hice yo.
 
 # Decisiones — TP9
 
 ## Dependencias y protecciones
 
-Activé Dependabot para Go, npm y GitHub Actions, con alertas y actualizaciones de seguridad. Mergeé el [PR #46](https://github.com/NavarroLorenzo/ingsoft3-tp01/pull/46): `golang-jwt/jwt/v5` **5.3.0 → 5.3.1**, una actualización patch. Revisé su changelog, sin cambios incompatibles anunciados para nuestro uso, y el pipeline verde sobre la rama actualizada, incluidos los tests de autenticación. La confianza viene de esa revisión y las pruebas, no sólo del número de versión.
+Acá apliqué shift-left: revisar riesgos desde el PR, antes de llevar el cambio a producción. Es la misma idea del freno de tests del TP5, sumando controles de seguridad.
 
-CodeQL quedó con Default setup. Sus dos avisos sobre `deploy-qa` y `deploy-prod` se relacionaban con configuración de seguridad (OWASP A02:2025): heredaban permisos del repositorio. No probaban un ataque ni permisos de escritura efectivos. Como sólo usan hooks de Render y URLs públicas, declaré `permissions: {}`; **la aprobación humana de PROD se conserva y cumple otra función**. También corregí CWE-190/CWE-681 usando `strconv.IntSize`: en 32 bits, `4294967297` podía truncarse a `1`; en nuestra imagen de 64 bits no ocurría ese truncamiento. La regresión falló antes del arreglo y pasó después en 32 bits. El análisis posterior de Go, JS/TS y Actions cerró los tres avisos, sin hallazgos pendientes en ese análisis.
+Dependabot mira versiones de dependencias y avisos conocidos. CodeQL analiza mi código y busca patrones de riesgo sin ejecutar la app como un test; por eso hay que interpretar cada hallazgo. Push protection busca formatos de secretos en el push. Cada herramienta cubre una parte.
 
-Verifiqué push protection y probé un PAT classic descartable sin scopes: GitHub rechazó el push de `demo-secreto` con **GH013 / Push cannot contain secrets**, identificando `config-prueba.txt:1`. No usé el bypass; eliminé la rama y revoqué el token. El escáner reconoce formatos compatibles, no cualquier contraseña inventada.
+Dejé Dependabot activo para Go, npm y GitHub Actions, con alertas y actualizaciones de seguridad. El que mergeé fue el [PR #46](https://github.com/NavarroLorenzo/ingsoft3-tp01/pull/46): `golang-jwt/jwt/v5` **5.3.0 → 5.3.1**, una actualización patch. Revisé su changelog, sin cambios incompatibles anunciados para nuestro uso, y el pipeline verde sobre la rama actualizada, incluidos los tests de autenticación. Me animé después de revisar eso y ver las pruebas en verde; que fuera patch no me alcanzaba por sí solo.
+
+Usé Default setup para CodeQL. Los dos avisos sobre `deploy-qa` y `deploy-prod` se relacionaban con configuración de seguridad (OWASP A02:2025): heredaban permisos del repositorio. Eso no demostraba que hubiera un ataque o permisos de escritura efectivos. En ese momento los jobs sólo usaban hooks de Render y URLs públicas, así que declaré `permissions: {}`; **la aprobación humana de PROD se conserva y cumple otra función**. También corregí CWE-190/CWE-681 usando `strconv.IntSize`: en 32 bits, `4294967297` podía truncarse a `1`; en nuestra imagen de 64 bits no ocurría ese truncamiento. La regresión falló antes del arreglo y pasó después en 32 bits. El análisis posterior de Go, JS/TS y Actions cerró los tres avisos, sin hallazgos pendientes en ese análisis.
+
+Para comprobar push protection probé un PAT classic descartable sin scopes: GitHub rechazó el push de `demo-secreto` con **GH013 / Push cannot contain secrets**, identificando `config-prueba.txt:1`. No usé el bypass; eliminé la rama y revoqué el token. Eso también me mostró su límite: reconoce formatos de secretos compatibles, no cualquier contraseña que yo invente.
 
 ## Disponibilidad, errores y feedback
 
-UptimeRobot consulta sólo `/health` de PROD cada cinco minutos. Agregué HEAD con el mismo ping a PostgreSQL que GET. En la caída controlada del **17/10/2026, UTC−3**, Render muestra suspensión a las **19:59** y UptimeRobot detectó el 503 a las **20:02:52**: aproximadamente **3–4 minutos**. Render sólo muestra minutos, por lo que no inventé segundos. Se reanudó a las 20:03; comprobé HTTP 200 a las 20:06:05 y el monitor marcó UP a las **20:07:56**. Sus **5 min 4 s** corresponden al historial DOWN/UP, no a toda la interrupción. Llegaron ambos correos y dejé el monitor **pausado**. El [postmortem](postmortem.md) explica la causa de sistema y la recuperación.
+Dejé UptimeRobot consultando sólo `/health` de PROD cada cinco minutos. Agregué HEAD con el mismo ping a PostgreSQL que GET. En la caída controlada del **17/10/2026, UTC−3**, Render muestra suspensión a las **19:59** y UptimeRobot detectó el 503 a las **20:02:52**: aproximadamente **3–4 minutos**. Como Render sólo muestra minutos, no tengo los segundos para dar una demora exacta. Se reanudó a las 20:03; comprobé HTTP 200 a las 20:06:05 y el monitor marcó UP a las **20:07:56**. Los **5 min 4 s** son el tramo que registró el monitor entre DOWN y UP; la interrupción real empezó antes. Llegaron ambos correos y dejé el monitor **pausado**. El [postmortem](postmortem.md) explica la causa de sistema y la recuperación.
 
-Integré Sentry en Gin y React por el [PR #64](https://github.com/NavarroLorenzo/ingsoft3-tp01/pull/64). Confirmé el error real «Falla de prueba del TP9» y las transacciones de ambos proyectos. En la ventana backend de **1H**, con `production` como único entorno, la más usada fue **GET /api/gastos: 0,283 pedidos/min**. El mayor P95 observado fue **POST /api/auth/login: 376,72 ms**. Abrí el [issue #66](https://github.com/NavarroLorenzo/ingsoft3-tp01/issues/66), agregado al tablero **IngSoft3 - Mi App DevOps**, en Todo, para investigar con más muestras antes de decidir una optimización. En el frontend, la vista de **24H** mostró Pageload P95 **1,58 s**, con Performance Score **90**. Son muestras pequeñas, no un diagnóstico de causa ni un SLA.
+El monitor tiene que estar afuera: si suspendo la API, tampoco puede mandarme datos a Sentry. Sentry, en cambio, me muestra errores y demoras aunque `/health` siga respondiendo. La alerta me sirve si me dice qué servicio falló, cuándo y qué revisar: en esta práctica señaló la URL y el 503, y pude reanudar y comprobar la recuperación.
 
-Retiré del código `/api/falla` y su prueba temporal, manteniendo la instrumentación. El DSN público del frontend permite enviar eventos, no administrar ni leer el proyecto; el backend recibe su DSN mediante `SENTRY_DSN` en Render PROD. Antes de la defensa comprobaré la retención de 30 días y repetiré las prácticas si los datos ya vencieron, retirando otra vez el endpoint y pausando el monitor al terminar.
+Sumé Sentry a Gin y React con el [PR #64](https://github.com/NavarroLorenzo/ingsoft3-tp01/pull/64). Confirmé el error real «Falla de prueba del TP9» y las transacciones de ambos proyectos. En la ventana backend de **1H**, con `production` como único entorno, la más usada fue **GET /api/gastos: 0,283 pedidos/min**. El mayor P95 observado fue **POST /api/auth/login: 376,72 ms**. Abrí el [issue #66](https://github.com/NavarroLorenzo/ingsoft3-tp01/issues/66), agregado al tablero **IngSoft3 - Mi App DevOps**, en Todo, para investigar con más muestras antes de decidir una optimización. En el frontend, la vista de **24H** mostró Pageload P95 **1,58 s**, con Performance Score **90**. Con tan pocas muestras todavía no puedo explicar la causa ni prometer un SLA.
 
-Como mejora posterior del 24/10/2026, los errores internos que los handlers responden con 500 también envían su excepción a Sentry mediante el hub de la petición; conservan el mismo mensaje público genérico. Los 4xx esperados no se reportan como excepciones y los panics conservan la captura del middleware. Configuré `Release` con `BuildCommit`, el mismo SHA incorporado al binario que informa `/health`, para relacionar los eventos con su versión. Es un ajuste de observabilidad sobre el flujo existente.
+Después de ver el error en Sentry saqué `/api/falla` y su prueba temporal, dejando la instrumentación. El DSN público del front sirve para enviar eventos, no para leer ni administrar el proyecto. El del backend llega por `SENTRY_DSN` en Render PROD. Antes de la defensa tengo que comprobar que los datos sigan dentro de los 30 días; si vencieron, repito la práctica, vuelvo a sacar el endpoint y dejo el monitor pausado al terminar.
+
+El postmortem es blameless: me interesa explicar qué pasó, por qué el sistema lo permitió y qué haría para recuperarlo, sin buscar un culpable. Acá la suspensión fue deliberada y mostró que un pipeline verde no impide una operación posterior desde el panel de Render.
+
+El 24/10 agregué otra mejora: cuando un handler maneja un error interno y devuelve 500, también manda la excepción a Sentry usando el hub de esa petición. El usuario sigue recibiendo el mensaje genérico. Los 4xx esperados quedan fuera de ese reporte y el middleware sigue capturando panics. Además, `Release` usa `BuildCommit`, el mismo SHA del binario que devuelve `/health`, para saber qué versión produjo el error.
 
 ## Problemas, uso de IA y verificación
 
-Adapté el ejemplo de la guía a Go/Gin y ajusté la prueba local de Sentry para comprobar una excepción con stacktrace. La lectura de métricas requirió acotar la ventana a 1H para distinguir el uso; no confundí el redondeo de TPM ni los tiempos de navegador con los del backend. Distinguí además el UP observado del instante de recepción de los emails, que no medí por separado.
+Tuve que adaptar el ejemplo a Go/Gin y ajustar la prueba local de Sentry para comprobar una excepción con stacktrace. Para leer el uso me sirvió pasar la ventana a 1H. También separé los tiempos del navegador de los de la API y el UP del monitor de la recepción del email: esa última demora no la medí por separado.
 
 Usé ChatGPT/Codex para entender la guía, preparar y comentar cambios, analizar hallazgos con documentación oficial, calcular DORA y redactar. Verifiqué tests, cobertura, CodeQL, Actions, HTTP y los datos reales de Sentry, UptimeRobot y el tablero. La suite local de cierre pasó con **62,0%** de cobertura del backend, sobre el umbral de 60%. Los commits, pushes, PR, merges, configuraciones remotas y aprobaciones los hago yo. El [PR #67](https://github.com/NavarroLorenzo/ingsoft3-tp01/pull/67) quedó integrado y su [corrida de main](https://github.com/NavarroLorenzo/ingsoft3-tp01/actions/runs/39079021894) aprobó builds, QA, integración, E2E y PROD. Después comprobé salud de API y frontend con HTTP 200, y `/api/falla` con 404. Para `v9.0.0` elijo el commit final verificado en PROD.
 
 ## Mantenimiento de seguridad posterior — 23/10/2026
 
-Cerrar un PR de Dependabot no aplica su corrección. Tras ordenar las propuestas pendientes retomé las actualizaciones asociadas a alertas: pgx **5.6.0 → 5.11.0** ([#48](https://github.com/NavarroLorenzo/ingsoft3-tp01/pull/48)) y quic-go **0.54.0 → 0.59.1** ([#65](https://github.com/NavarroLorenzo/ingsoft3-tp01/pull/65)). En el frontend agrupé Vite **8.2.1 → 8.3.4**, source-map-js **1.2.1 → 1.2.2** y Vitest/mocker/coverage **4.1.10 → 4.1.12**. Revisé los avisos y las notas oficiales; mantuve Vitest y coverage en la misma versión exacta para corregir la vulnerabilidad sin mezclar las versiones mayores 4 y 5 de las propuestas anteriores. Gin incluye quic-go, pero nuestra aplicación sirve HTTP normal: una alerta sobre HTTP/3 no demuestra por sí sola que ese recorrido esté expuesto.
+Cerrar un PR de Dependabot no cambia la versión que usa la app. Después de ordenar los PR pendientes retomé las actualizaciones asociadas a alertas: pgx **5.6.0 → 5.11.0** ([#48](https://github.com/NavarroLorenzo/ingsoft3-tp01/pull/48)) y quic-go **0.54.0 → 0.59.1** ([#65](https://github.com/NavarroLorenzo/ingsoft3-tp01/pull/65)). En el frontend agrupé Vite **8.2.1 → 8.3.4**, source-map-js **1.2.1 → 1.2.2** y Vitest/mocker/coverage **4.1.10 → 4.1.12**. Revisé los avisos y las notas de las versiones; mantuve Vitest y coverage en la misma versión exacta para corregir la vulnerabilidad sin mezclar las versiones mayores 4 y 5 de las propuestas anteriores. Gin incluye quic-go, pero nuestra aplicación sirve HTTP normal: una alerta sobre HTTP/3 no demuestra por sí sola que ese recorrido esté expuesto.
 
-Verificación local del frontend: **43 tests aprobados**, cobertura **88,28% statements, 84% branches, 89,18% functions y 90,9% lines**, build correcto y **npm audit sin vulnerabilidades reportadas** para el lockfile actualizado. Las promociones conservan los controles de CI, CodeQL, QA, integración y E2E, con los mismos umbrales. Comparo las alertas con las versiones del manifiesto y del grafo de GitHub: que el código se haya actualizado no significa que la alerta ya figure cerrada; no uso el descarte manual para ocultar esa diferencia.
+Probé el frontend en local: **43 tests aprobados**, cobertura **88,28% statements, 84% branches, 89,18% functions y 90,9% lines**, build correcto y **npm audit sin vulnerabilidades reportadas** para el lockfile actualizado. Las promociones conservan los controles de CI, CodeQL, QA, integración y E2E, con los mismos umbrales. También comparo las alertas con el manifiesto y el grafo de GitHub: que el código se haya actualizado no significa que la alerta ya figure cerrada; no la descarto a mano sólo para que deje de aparecer.
 
-Para este mantenimiento autoricé expresamente a Codex a preparar cambios, commits y PR, integrarlos y efectuar las promociones mediante la revisión protegida de production con mi cuenta. Esta autorización posterior distingue estas operaciones del cierre original, que realicé yo. Las comprobaciones y resultados quedan en el seguimiento; en esta etapa se conservaron el PR intencional #31 y el tag/release histórico **v9.0.0**. La decisión posterior de actualizar esa release se documenta al final.
+Para este mantenimiento le di permiso a Codex para preparar los cambios, hacer los commits y PR, integrarlos y seguir las promociones con mi cuenta y la revisión protegida de production. Lo aclaro porque el cierre original lo había hecho yo. Los resultados quedaron en el seguimiento. En esa etapa conservamos el PR intencional #31 y el tag/release histórico **v9.0.0**; después decidí actualizar esa release, como cuento al final.
 
 ## Correcciones documentales para la defensa — 23/10/2026
 
-La revisión conjunta de las guías detectó decisiones TP5 redactadas en futuro y sin enlaces, notas de v5 que confundían los dos PR, documentación TP6 posterior al tag y reportes TP7 vencidos en Actions. Completé las explicaciones con las corridas reales, corregí README y notas de release y conservé los reportes originales mediante copias públicas saneadas. Amplié a 90 días la retención de los nuevos reportes de Playwright, sin cambiar tests, umbrales ni dependencias. Los reportes históricos quedan en los assets de v7 y no se atribuyen a una nueva corrida.
+Al revisar las guías encontré partes de TP5 todavía redactadas en futuro y sin enlaces, notas de v5 que mezclaban los dos PR, documentación de TP6 agregada después del tag y reportes de TP7 vencidos en Actions. Completé el relato con las corridas reales, corregí README y las notas de release y guardé copias públicas saneadas de los reportes originales. Los nuevos reportes de Playwright se retienen 90 días. No cambié tests, umbrales ni dependencias; las copias de v7 siguen siendo reportes históricos, no corridas nuevas.
 
-Verifiqué la estructura y resultados de las cuatro copias, la ausencia de los valores de sesión detectados y la apertura del reporte y su traza/Network con el POST 400 original. Autoricé expresamente publicar esos cuatro ZIP y su manifiesto después de que la revisión automática pidiera confirmar el payload público. En esa corrección se conservaron los tags remotos; el v5 local se alineó con el remoto guardando su referencia anterior en un respaldo local. La [preparación de defensa](docs/defensa-p2.md) identifica qué debo mostrar personalmente: paneles privados, retención de telemetría, formulario y creación/destrucción de preprod en vivo. Usé Codex para preparar, revisar y publicar estas correcciones, con la autorización de operación ya indicada y verificaciones registradas en el seguimiento.
+Revisé las cuatro copias: sus resultados, que ya no tuvieran los valores de sesión detectados y que pudiera abrir el reporte y la traza/Network con el POST 400 original. Confirmé la publicación de esos cuatro ZIP y su manifiesto cuando la revisión automática pidió autorizar los archivos públicos. Conservamos los tags remotos; el v5 local se alineó con el remoto y su referencia anterior quedó respaldada. La [preparación de defensa](docs/defensa-p2.md) me sirve para ubicar los paneles privados, revisar la retención, el formulario y el ejercicio de crear/destruir preprod. Usé Codex para preparar, revisar y publicar estas correcciones con el permiso que ya le había dado, y dejé las comprobaciones en el seguimiento.
 
 ## Verificación del commit desplegado — mantenimiento del 24/10/2026
 
-Al comparar el pipeline actual con otra implementación detecté una mejora útil: que un hook responda y `/health` dé 200 no prueba que Render ya haya terminado de cambiar ambas imágenes. Elegí agregar la comprobación de versión conservando la cadena de jobs, las pruebas existentes y la interfaz de la app. Es una mejora posterior a las entregas originales; no reescribe sus tags ni presenta como obligatorio lo que la guía específica del TP7 dejaba opcional.
+Al comparar el pipeline vi que me faltaba una comprobación: el hook podía responder y `/health` dar 200 mientras Render todavía servía la versión anterior. Agregué la comparación del commit manteniendo los jobs, las pruebas y la interfaz que ya tenía. Es una mejora posterior a las entregas originales; no cambia sus tags ni convierte en obligatorio algo que la guía del TP7 dejaba opcional.
 
-Actions pasa el SHA completo como `COMMIT` al construir las imágenes. Go lo incorpora al binario con `-ldflags -X` y `/health` lo informa junto con `status`, manteniendo el ping a PostgreSQL y los errores 503. Nginx sirve `/version.json` desde su propia imagen mediante una ruta exacta: no consulta al backend ni cae al HTML de la SPA. Esa metadata no contiene secretos y se sirve sin caché. En builds locales sin argumento queda `desconocido`; Compose no requiere cambios.
+Actions pasa el SHA completo como `COMMIT` al construir. Go lo guarda en el binario con `-ldflags -X` y `/health` lo devuelve junto con `status`, conservando el ping a PostgreSQL y los errores 503. En el front, Nginx sirve `/version.json` desde su propia imagen por una ruta exacta, sin consultar al backend ni devolver el HTML de la SPA. Es información pública del código, sin secretos y sin caché. Si construyo en local sin argumento, queda `desconocido`; no tuve que cambiar Compose.
 
-QA y PROD ejecutan el mismo verificador, sin dependencias npm: espera ambos commits, los compara con `github.sha`, conserva las comprobaciones de frontend 200 y proxy protegido 401, y falla al agotar 30 intentos con 20 segundos entre ellos. Cada request tiene timeout de 10 segundos. Sólo después del éxito escribe los dos SHA observados en Summary. La aprobación protegida de production se conserva; checkout requiere únicamente `contents: read` en esos jobs, sustituyendo el conjunto vacío que bastaba cuando sólo invocaban hooks y curl. No se amplían permisos de escritura.
+Uso el mismo verificador en QA y PROD, sin dependencias npm. Espera los dos commits y los compara con `github.sha`, además de comprobar frontend 200 y proxy protegido 401. Hace hasta 30 intentos, con 20 segundos entre ellos y timeout de 10 segundos por request; si no logra verificar, falla. Recién cuando pasa escribe los dos SHA en Summary. La aprobación de production sigue igual. Para bajar el verificador con checkout esos jobs necesitan `contents: read`; el conjunto vacío alcanzaba cuando sólo llamaban hooks y curl. No agregué permisos de escritura.
 
-El control identifica el commit incorporado al código; no certifica un digest de imagen ni el aislamiento de las bases. Events y GHCR siguen siendo útiles para revisar esas imágenes. QA continúa siendo un entorno compartido: las promociones se hacen de una en una y no se cambia aquí su política de concurrencia. Se conservan los umbrales de cobertura, CodeQL y los recorridos de integración/E2E.
+Con este control sé qué commit quedó incorporado al código. Para comprobar el digest de la imagen o el aislamiento de las bases todavía necesito las otras verificaciones; Events y GHCR siguen sirviendo para revisar las imágenes. QA sigue compartido entre las corridas, así que hago las promociones de una en una. Conservé los umbrales, CodeQL y los recorridos de integración/E2E; no cambié la política de concurrencia en esta mejora.
 
-Verificación local: diez tests del verificador aprobados, incluyendo versión anterior saludable, frontend distinto, HTML con 200, base/proxy fallidos, reintentos y salida de error. Backend aprobó con **62,1%** de sentencias sobre el mismo núcleo de CI y umbral de 60%; frontend conservó sus **43 tests** y cobertura **88,28/84/89,18/90,9%**, más build correcto. Windows requirió acceso autorizado a los temporales y caché para ejecutar las suites; no se alteraron las pruebas para evitar esa restricción. Docker Desktop no estaba iniciado, por lo que los builds de contenedores y la comprobación de versiones reales se verifican en Actions antes de la promoción.
+En local pasaron los diez tests del verificador: versión anterior saludable, frontend distinto, HTML con 200, base/proxy fallidos, reintentos y salida de error. El backend dio **62,1%** de sentencias sobre el mismo núcleo de CI y umbral de 60%; el front mantuvo **43 tests**, cobertura **88,28/84/89,18/90,9%** y build correcto. Windows necesitó acceso autorizado a los temporales y la caché; no cambié las pruebas para evitar esa restricción. Como Docker Desktop no estaba iniciado, dejé la construcción de contenedores y la comprobación de versiones reales para Actions, antes de promover.
 
 Autoricé a Codex a implementar, documentar, publicar el PR y seguir la promoción normal con mi cuenta. El [PR #77](https://github.com/NavarroLorenzo/ingsoft3-tp01/pull/77) quedó integrado en `55c8cded47a26ae74dd1e8466a1a8bd77de60f8f`; su [corrida de main](https://github.com/NavarroLorenzo/ingsoft3-tp01/actions/runs/40136233001) aprobó los seis jobs, integración 3 passed y E2E 3 passed. En PROD el primer intento rechazó el HTML de la versión anterior en `/version.json` y el siguiente confirmó ambos SHA. CodeQL aprobó los tres análisis sin resultados.
 
