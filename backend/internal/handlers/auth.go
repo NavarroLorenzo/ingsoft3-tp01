@@ -34,23 +34,23 @@ func (h *Handler) Register(c *gin.Context) {
 		return
 	}
 	if !errors.Is(err, gorm.ErrRecordNotFound) {
-		writeError(c, http.StatusInternalServerError, "No se pudo registrar el usuario.")
+		writeInternalError(c, err, "No se pudo registrar el usuario.")
 		return
 	}
 
 	hash, err := auth.HashPassword(input.Password)
 	if err != nil {
-		writeError(c, http.StatusInternalServerError, "No se pudo registrar el usuario.")
+		writeInternalError(c, err, "No se pudo registrar el usuario.")
 		return
 	}
 	user := models.Usuario{Nombre: input.Nombre, Email: input.Email, PasswordHash: hash}
 	if err := h.DB.Create(&user).Error; err != nil {
-		writeError(c, http.StatusInternalServerError, "No se pudo registrar el usuario.")
+		writeInternalError(c, err, "No se pudo registrar el usuario.")
 		return
 	}
 	token, err := auth.GenerateToken(user, h.JWTSecret)
 	if err != nil {
-		writeError(c, http.StatusInternalServerError, "No se pudo generar el token.")
+		writeInternalError(c, err, "No se pudo generar el token.")
 		return
 	}
 	c.JSON(http.StatusCreated, authResponse{User: user, Token: token})
@@ -73,7 +73,7 @@ func (h *Handler) Login(c *gin.Context) {
 			writeError(c, http.StatusUnauthorized, "Email o contraseña incorrectos.")
 			return
 		}
-		writeError(c, http.StatusInternalServerError, "No se pudo iniciar sesión.")
+		writeInternalError(c, err, "No se pudo iniciar sesión.")
 		return
 	}
 	if auth.ComparePassword(user.PasswordHash, input.Password) != nil {
@@ -82,7 +82,7 @@ func (h *Handler) Login(c *gin.Context) {
 	}
 	token, err := auth.GenerateToken(user, h.JWTSecret)
 	if err != nil {
-		writeError(c, http.StatusInternalServerError, "No se pudo generar el token.")
+		writeInternalError(c, err, "No se pudo generar el token.")
 		return
 	}
 	c.JSON(http.StatusOK, authResponse{User: user, Token: token})
@@ -96,7 +96,7 @@ func (h *Handler) Me(c *gin.Context) {
 			writeError(c, http.StatusUnauthorized, "Usuario no encontrado.")
 			return
 		}
-		writeError(c, http.StatusInternalServerError, "No se pudo obtener el usuario.")
+		writeInternalError(c, err, "No se pudo obtener el usuario.")
 		return
 	}
 	c.JSON(http.StatusOK, user)

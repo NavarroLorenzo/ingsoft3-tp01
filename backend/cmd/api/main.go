@@ -17,6 +17,7 @@ func main() {
 		if err := sentry.Init(sentry.ClientOptions{
 			Dsn:              dsn,
 			Environment:      "production",
+			Release:          handlers.BuildCommit, // El mismo commit que informa /health.
 			EnableTracing:    true,
 			TracesSampleRate: 1.0,   // En el TP medimos todos los pedidos, como indica la guía.
 			SendDefaultPII:   false, // No incluir automáticamente cuerpos de login ni datos del usuario.

@@ -45,7 +45,7 @@ func (h *Handler) GetGastos(c *gin.Context) {
 
 	var gastos []models.Gasto
 	if err := query.Order("fecha DESC, id DESC").Find(&gastos).Error; err != nil {
-		writeError(c, http.StatusInternalServerError, "No se pudieron obtener los gastos.")
+		writeInternalError(c, err, "No se pudieron obtener los gastos.")
 		return
 	}
 	c.JSON(http.StatusOK, gastos)
@@ -62,7 +62,7 @@ func (h *Handler) GetGasto(c *gin.Context) {
 			writeError(c, http.StatusNotFound, "Gasto no encontrado.")
 			return
 		}
-		writeError(c, http.StatusInternalServerError, "No se pudo obtener el gasto.")
+		writeInternalError(c, err, "No se pudo obtener el gasto.")
 		return
 	}
 	c.JSON(http.StatusOK, gasto)
@@ -86,11 +86,11 @@ func (h *Handler) CreateGasto(c *gin.Context) {
 
 	gasto := models.Gasto{Descripcion: input.Descripcion, Monto: input.Monto, Fecha: fecha, CategoriaID: input.CategoriaID, UsuarioID: currentUserID(c)}
 	if err := h.DB.Create(&gasto).Error; err != nil {
-		writeError(c, http.StatusInternalServerError, "No se pudo crear el gasto.")
+		writeInternalError(c, err, "No se pudo crear el gasto.")
 		return
 	}
 	if err := h.DB.Preload("Categoria").First(&gasto, gasto.ID).Error; err != nil {
-		writeError(c, http.StatusInternalServerError, "El gasto fue creado pero no se pudo recuperar.")
+		writeInternalError(c, err, "El gasto fue creado pero no se pudo recuperar.")
 		return
 	}
 	c.JSON(http.StatusCreated, gasto)
@@ -118,7 +118,7 @@ func (h *Handler) UpdateGasto(c *gin.Context) {
 			writeError(c, http.StatusNotFound, "Gasto no encontrado.")
 			return
 		}
-		writeError(c, http.StatusInternalServerError, "No se pudo actualizar el gasto.")
+		writeInternalError(c, err, "No se pudo actualizar el gasto.")
 		return
 	}
 	if !h.categoryExists(input.CategoriaID) {
@@ -131,11 +131,11 @@ func (h *Handler) UpdateGasto(c *gin.Context) {
 	gasto.Fecha = fecha
 	gasto.CategoriaID = input.CategoriaID
 	if err := h.DB.Save(&gasto).Error; err != nil {
-		writeError(c, http.StatusInternalServerError, "No se pudo actualizar el gasto.")
+		writeInternalError(c, err, "No se pudo actualizar el gasto.")
 		return
 	}
 	if err := h.DB.Preload("Categoria").First(&gasto, gasto.ID).Error; err != nil {
-		writeError(c, http.StatusInternalServerError, "El gasto fue actualizado pero no se pudo recuperar.")
+		writeInternalError(c, err, "El gasto fue actualizado pero no se pudo recuperar.")
 		return
 	}
 	c.JSON(http.StatusOK, gasto)
@@ -148,7 +148,7 @@ func (h *Handler) DeleteGasto(c *gin.Context) {
 	}
 	result := h.DB.Where("id = ? AND usuario_id = ?", id, currentUserID(c)).Delete(&models.Gasto{})
 	if result.Error != nil {
-		writeError(c, http.StatusInternalServerError, "No se pudo eliminar el gasto.")
+		writeInternalError(c, result.Error, "No se pudo eliminar el gasto.")
 		return
 	}
 	if result.RowsAffected == 0 {
