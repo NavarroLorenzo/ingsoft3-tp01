@@ -464,6 +464,8 @@ Integré Sentry en Gin y React por el [PR #64](https://github.com/NavarroLorenzo
 
 Retiré del código `/api/falla` y su prueba temporal, manteniendo la instrumentación. El DSN público del frontend permite enviar eventos, no administrar ni leer el proyecto; el backend recibe su DSN mediante `SENTRY_DSN` en Render PROD. Antes de la defensa comprobaré la retención de 30 días y repetiré las prácticas si los datos ya vencieron, retirando otra vez el endpoint y pausando el monitor al terminar.
 
+Como mejora posterior del 24/10/2026, los errores internos que los handlers responden con 500 también envían su excepción a Sentry mediante el hub de la petición; conservan el mismo mensaje público genérico. Los 4xx esperados no se reportan como excepciones y los panics conservan la captura del middleware. Configuré `Release` con `BuildCommit`, el mismo SHA incorporado al binario que informa `/health`, para relacionar los eventos con su versión. Es un ajuste de observabilidad sobre el flujo existente.
+
 ## Problemas, uso de IA y verificación
 
 Adapté el ejemplo de la guía a Go/Gin y ajusté la prueba local de Sentry para comprobar una excepción con stacktrace. La lectura de métricas requirió acotar la ventana a 1H para distinguir el uso; no confundí el redondeo de TPM ni los tiempos de navegador con los del backend. Distinguí además el UP observado del instante de recepción de los emails, que no medí por separado.

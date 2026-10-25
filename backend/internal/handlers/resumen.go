@@ -30,7 +30,7 @@ func (h *Handler) GetResumen(c *gin.Context) {
 		CantidadGastos int64
 	}
 	if err := query.Select("COALESCE(SUM(monto), 0) AS total, COUNT(*) AS cantidad_gastos").Scan(&result).Error; err != nil {
-		writeError(c, http.StatusInternalServerError, "No se pudo obtener el resumen.")
+		writeInternalError(c, err, "No se pudo obtener el resumen.")
 		return
 	}
 
@@ -45,7 +45,7 @@ func (h *Handler) GetResumen(c *gin.Context) {
 		Group("gastos.categoria_id, categorias.nombre").
 		Order("categorias.nombre ASC").
 		Scan(&porCategoria).Error; err != nil {
-		writeError(c, http.StatusInternalServerError, "No se pudo obtener el resumen.")
+		writeInternalError(c, err, "No se pudo obtener el resumen.")
 		return
 	}
 

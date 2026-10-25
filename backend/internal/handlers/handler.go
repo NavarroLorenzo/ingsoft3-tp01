@@ -56,6 +56,15 @@ func writeError(c *gin.Context, status int, message string) {
 	c.JSON(status, gin.H{"error": message})
 }
 
+// Los errores manejados no provocan un panic: se envían explícitamente a Sentry.
+// El hub de la petición conserva ruta y traza; la respuesta sigue siendo genérica.
+func writeInternalError(c *gin.Context, err error, message string) {
+	if hub := sentrygin.GetHubFromContext(c); hub != nil {
+		hub.CaptureException(err)
+	}
+	writeError(c, http.StatusInternalServerError, message)
+}
+
 func parseID(c *gin.Context) (uint, bool) {
 	// IntSize coincide con uint: evita truncar IDs si se compila para 32 bits.
 	id, err := strconv.ParseUint(c.Param("id"), 10, strconv.IntSize)

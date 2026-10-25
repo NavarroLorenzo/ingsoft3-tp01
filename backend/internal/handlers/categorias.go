@@ -13,7 +13,7 @@ import (
 func (h *Handler) GetCategorias(c *gin.Context) {
 	var categorias []models.Categoria
 	if err := h.DB.Order("nombre ASC").Find(&categorias).Error; err != nil {
-		writeError(c, http.StatusInternalServerError, "No se pudieron obtener las categorías.")
+		writeInternalError(c, err, "No se pudieron obtener las categorías.")
 		return
 	}
 	c.JSON(http.StatusOK, categorias)
@@ -30,7 +30,7 @@ func (h *Handler) GetCategoria(c *gin.Context) {
 			writeError(c, http.StatusNotFound, "Categoría no encontrada.")
 			return
 		}
-		writeError(c, http.StatusInternalServerError, "No se pudo obtener la categoría.")
+		writeInternalError(c, err, "No se pudo obtener la categoría.")
 		return
 	}
 	c.JSON(http.StatusOK, categoria)
@@ -53,7 +53,7 @@ func (h *Handler) CreateCategoria(c *gin.Context) {
 
 	categoria := models.Categoria{Nombre: input.Nombre}
 	if err := h.DB.Create(&categoria).Error; err != nil {
-		writeError(c, http.StatusInternalServerError, "No se pudo crear la categoría.")
+		writeInternalError(c, err, "No se pudo crear la categoría.")
 		return
 	}
 	c.JSON(http.StatusCreated, categoria)
@@ -80,7 +80,7 @@ func (h *Handler) UpdateCategoria(c *gin.Context) {
 			writeError(c, http.StatusNotFound, "Categoría no encontrada.")
 			return
 		}
-		writeError(c, http.StatusInternalServerError, "No se pudo actualizar la categoría.")
+		writeInternalError(c, err, "No se pudo actualizar la categoría.")
 		return
 	}
 	if h.categoryNameExists(input.Nombre, id) {
@@ -90,7 +90,7 @@ func (h *Handler) UpdateCategoria(c *gin.Context) {
 
 	categoria.Nombre = input.Nombre
 	if err := h.DB.Save(&categoria).Error; err != nil {
-		writeError(c, http.StatusInternalServerError, "No se pudo actualizar la categoría.")
+		writeInternalError(c, err, "No se pudo actualizar la categoría.")
 		return
 	}
 	c.JSON(http.StatusOK, categoria)
@@ -107,12 +107,12 @@ func (h *Handler) DeleteCategoria(c *gin.Context) {
 			writeError(c, http.StatusNotFound, "Categoría no encontrada.")
 			return
 		}
-		writeError(c, http.StatusInternalServerError, "No se pudo eliminar la categoría.")
+		writeInternalError(c, err, "No se pudo eliminar la categoría.")
 		return
 	}
 	var count int64
 	if err := h.DB.Model(&models.Gasto{}).Where("categoria_id = ?", id).Count(&count).Error; err != nil {
-		writeError(c, http.StatusInternalServerError, "No se pudo eliminar la categoría.")
+		writeInternalError(c, err, "No se pudo eliminar la categoría.")
 		return
 	}
 	if count > 0 {
@@ -120,7 +120,7 @@ func (h *Handler) DeleteCategoria(c *gin.Context) {
 		return
 	}
 	if err := h.DB.Delete(&categoria).Error; err != nil {
-		writeError(c, http.StatusInternalServerError, "No se pudo eliminar la categoría.")
+		writeInternalError(c, err, "No se pudo eliminar la categoría.")
 		return
 	}
 	c.Status(http.StatusNoContent)
