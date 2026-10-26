@@ -23,6 +23,18 @@ export async function esperarServidor({ signal } = {}) {
   }, 120_000);
 
   try {
+    espera.throwIfAborted();
+    // Una sola petición directa, sin cookies, para activar la API en Render.
+    // La redirección sale de Nginx según el entorno; no se interpreta su respuesta opaca.
+    void fetch("/health-wakeup", {
+      method: "GET",
+      mode: "no-cors",
+      credentials: "omit",
+      referrerPolicy: "no-referrer",
+      cache: "no-store",
+      signal: espera
+    }).catch(() => {});
+
     while (true) {
       espera.throwIfAborted();
       const intento = new AbortController();
@@ -46,5 +58,6 @@ export async function esperarServidor({ signal } = {}) {
     }
   } finally {
     clearTimeout(timerLimite);
+    limite.abort(); // Cancela también el pedido de arranque si aún sigue pendiente.
   }
 }
