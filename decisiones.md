@@ -422,6 +422,8 @@ Un test **flaky** falla y después pasa sin cambiar el código. Me pasó en inte
 
 También agregué una espera de disponibilidad para el usuario: el frontend consulta `/health` al abrirse y antes de login o registro, con límite total de dos minutos. Muestra que está iniciando el servidor y permite reintentar si agota la espera. Sólo repite el GET de salud, no los POST ni las escrituras. Nginx tiene una ruta exacta para `/health` y un timeout de lectura de 120 segundos. Los unitarios del frontend pasaron de 34 a 43 al cubrir esa lógica.
 
+El 26/10 reproduje un problema adicional en QA: abrir sólo el front agotaba esa espera con 502, mientras que un pedido directo desde el navegador conseguía despertar la API. Agregué un único GET de arranque mediante `/health-wakeup`: Nginx lo redirige a la URL pública HTTPS de Render del entorno, sin cambiar de imagen entre QA y PROD. El navegador lo envía sin cookies ni credenciales y no toma su respuesta opaca como prueba de salud; sigue esperando el JSON saludable de `/health`, que comprueba también PostgreSQL. En local la ruta responde 204, y el pedido pendiente se cancela al terminar la espera. No agregué pings permanentes ni reintentos de login o escrituras.
+
 React sigue llamando rutas relativas. El mismo JavaScript y la misma plantilla de Nginx viajan en la imagen; al arrancar se reciben `BACKEND_URL` y `DNS_RESOLVER` del entorno. Así QA apunta a su API y PROD a la suya sin volver a compilar. Credenciales de base y JWT siguen fuera de la imagen, en Render.
 
 ## Release y recuperación

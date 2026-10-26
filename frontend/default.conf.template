@@ -1,3 +1,9 @@
+# Sólo redirigir a una URL pública HTTPS de Render, nunca a credenciales o hosts locales.
+map $backend_api $backend_wakeup_url {
+    default "";
+    ~^(https://[a-z0-9-]+[.]onrender[.]com)/?$ $1/health;
+}
+
 server {
     listen 80;
 
@@ -18,6 +24,14 @@ server {
     # La URL del backend y el DNS se reciben del entorno al arrancar.
     resolver ${DNS_RESOLVER} valid=10s ipv6=off;
     set $backend_api ${BACKEND_URL};
+
+    # El navegador llega directamente a Render para despertar la API dormida.
+    # La respuesta no confirma salud: eso se sigue comprobando por /health.
+    location = /health-wakeup {
+        add_header Cache-Control "no-store" always;
+        if ($backend_wakeup_url = "") { return 204; }
+        return 302 $backend_wakeup_url;
+    }
 
     # La comprobación del frontend debe llegar al backend, no al index.html de la SPA.
     location = /health {
