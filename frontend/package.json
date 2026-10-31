@@ -14,7 +14,7 @@
     "test:cuenta": "node scripts/preparar-cuenta-e2e.mjs"
   },
   "dependencies": {
-    "@sentry/react": "11.8.0",
+    "@sentry/react": "11.9.0",
     "@vitejs/plugin-react": "latest",
     "react": "latest",
     "react-dom": "latest",
